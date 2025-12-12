@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/vocab_word.dart'; // Import model VocabWord
-
+import '../models/vocab_word.dart'; // Import model VocabWo
 // Model tạm thời dùng để hứng dữ liệu tra từ (nếu chưa muốn sửa Model chính)
 // Hoặc bạn có thể dùng thẳng VocabWord, ở đây tôi dùng class riêng để mapping cho dễ
 class TempVocabData {
