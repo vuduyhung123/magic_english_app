@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'view_models/vocab_view_model.dart';
 import 'views/vocab_screen.dart';
 import 'views/welcome_screen.dart';
-import 'views/home_screen.dart'; // Import file mới
+import 'views/home_screen.dart';
+
 
 void main() {
   runApp(const MyApp());
@@ -23,23 +24,28 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.white,
         useMaterial3: true,
       ),
-      home: const WelcomeScreen(), // Bắt đầu từ màn hình Welcome
+      home: const WelcomeScreen(),
     );
   }
 }
 
 class MainScreen extends StatefulWidget {
   final VocabViewModel viewModel;
-  const MainScreen({super.key, required this.viewModel});
+  final bool isGuest; // Nhận biến Guest
+
+  const MainScreen({
+    super.key,
+    required this.viewModel,
+    this.isGuest = false
+  });
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0; // Mặc định mở tab Home (Index 0)
+  int _currentIndex = 0;
 
-  // Hàm chuyển tab
   void _onTabTapped(int index) {
     setState(() {
       _currentIndex = index;
@@ -48,15 +54,12 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Danh sách màn hình
     final List<Widget> screens = [
-      // Index 0: Home Screen (Truyền hàm chuyển tab vào)
-      HomeScreen(onNavigateToTab: _onTabTapped),
-
-      // Index 1: Vocab
+      HomeScreen(
+        onNavigateToTab: _onTabTapped,
+        isGuest: widget.isGuest, // Truyền biến Guest xuống Home
+      ),
       VocabScreen(viewModel: widget.viewModel),
-
-      // Index 2: Grammar
 
     ];
 
@@ -67,7 +70,7 @@ class _MainScreenState extends State<MainScreen> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: _onTabTapped, // Gọi hàm chuyển tab khi bấm thanh dưới
+        onTap: _onTabTapped,
         selectedItemColor: const Color(0xFF0B5394),
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,

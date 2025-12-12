@@ -15,64 +15,38 @@ class WelcomeScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(),
-              // Logo
-              Container(
-                width: 100,
-                height: 100,
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
-                    // Bạn thay bằng asset logo thật của bạn
-                    image: NetworkImage('https://cdn-icons-png.flaticon.com/512/616/616490.png'),
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
+              // Logo Placeholder
+              const Icon(Icons.auto_awesome, size: 80, color: Color(0xFF0B5394)),
               const SizedBox(height: 20),
-              // App Name
               const Text(
                 "Magic English",
                 style: TextStyle(
-                  fontFamily: 'Cursive', // Nếu chưa có font thì nó sẽ dùng font mặc định
+                  fontFamily: 'Cursive',
                   fontSize: 40,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
               ),
               const SizedBox(height: 16),
-              // Slogan
               const Text(
                 "Welcome! Let's start\nimproving your English.",
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.black54,
-                  height: 1.5,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.black54, height: 1.5),
               ),
               const Spacer(),
-              // Button
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Chuyển sang màn hình Login
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const LoginScreen()),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0B5394),
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text(
-                    "Get Started",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
+                  child: const Text("Get Started", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
               ),
               const SizedBox(height: 40),
