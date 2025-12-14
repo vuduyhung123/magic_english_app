@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:magic_english_app/views/grammar_checker.dart';
+import 'package:magic_english_app/views/statistics_screen.dart';
 import 'view_models/vocab_view_model.dart';
 import 'views/vocab_screen.dart';
 import 'views/welcome_screen.dart';
@@ -59,8 +60,7 @@ class _MainScreenState extends State<MainScreen> {
       HomeScreen(isGuest: widget.isGuest, onNavigateToTab: _onTabTapped),
       VocabScreen(viewModel: widget.viewModel),
       const GrammarScreen(),
-      const GrammarChecker(),
-      Container(color: Colors.white),
+      const StatisticScreen(),
     ];
 
     return Scaffold(

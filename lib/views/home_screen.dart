@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'account_review_screen.dart';
 
 class HomeScreen extends StatelessWidget {
-  final bool isGuest;
   final Function(int) onNavigateToTab;
+  final bool isGuest;
 
   const HomeScreen({
     super.key,
     required this.onNavigateToTab,
-    this.isGuest = false,
+    this.isGuest = false
   });
 
   @override
@@ -33,7 +33,6 @@ class HomeScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   _buildActionCard(
-                    context,
                     color: const Color(0xFF0B5394),
                     icon: Icons.book,
                     title: "Magic Vocab",
@@ -42,7 +41,6 @@ class HomeScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   _buildActionCard(
-                    context,
                     color: const Color(0xFF8B5CF6),
                     icon: Icons.check_circle_outline,
                     title: "Grammar Check",
@@ -64,10 +62,7 @@ class HomeScreen extends StatelessWidget {
       padding: const EdgeInsets.only(top: 60, left: 24, right: 24, bottom: 30),
       decoration: const BoxDecoration(
         color: Color(0xFF0B5394),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
-        ),
+        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
       ),
       child: Column(
         children: [
@@ -84,15 +79,14 @@ class HomeScreen extends StatelessWidget {
               ),
               GestureDetector(
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => AccountReviewScreen(isGuest: isGuest),
-                    ),
-                  );
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => AccountReviewScreen(isGuest: isGuest)));
                 },
-                child: const CircleAvatar(radius: 24, backgroundColor: Colors.white24, child: Icon(Icons.person, color: Colors.white)),
-              ),
+                child: const CircleAvatar(
+                  radius: 24,
+                  backgroundColor: Colors.white24,
+                  child: Icon(Icons.person, color: Colors.white),
+                ),
+              )
             ],
           ),
           const SizedBox(height: 24),
@@ -106,20 +100,13 @@ class HomeScreen extends StatelessWidget {
                 Text("12 Day Streak", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
               ],
             ),
-          ),
+          )
         ],
       ),
     );
   }
 
-  Widget _buildStatCard({
-    required Color color,
-    required Color iconColor,
-    required IconData icon,
-    required String title,
-    required String value,
-    required String subtitle,
-  }) {
+  Widget _buildStatCard({required Color color, required Color iconColor, required IconData icon, required String title, required String value, required String subtitle}) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
@@ -131,7 +118,7 @@ class HomeScreen extends StatelessWidget {
               children: [
                 Text(title, style: TextStyle(color: iconColor.withOpacity(0.8), fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                Text(value, style: const TextStyle(color: Colors.black87, fontSize: 28, fontWeight: FontWeight.bold)),
+                Text(value, style: TextStyle(color: Colors.black87, fontSize: 28, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 Text(subtitle, style: TextStyle(color: iconColor, fontSize: 13, fontWeight: FontWeight.w500)),
               ],
@@ -143,15 +130,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionCard(
-    BuildContext context, {
-    required Color color,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    bool showAiBadge = false,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildActionCard({required Color color, required IconData icon, required String title, required String subtitle, bool showAiBadge = false, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(

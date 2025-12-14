@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../view_models/vocab_view_model.dart';
+import 'add_vocab_screen.dart';
 
 class VocabTopicScreen extends StatelessWidget {
   final VocabViewModel viewModel;
