@@ -1,65 +1,84 @@
 import 'package:flutter/material.dart';
+import 'package:magic_english_app/views/grammar_checker.dart';
+import 'package:magic_english_app/views/statistics_screen.dart';
 import 'view_models/vocab_view_model.dart';
 import 'views/vocab_screen.dart';
+import 'views/welcome_screen.dart';
+import 'views/home_screen.dart';
+import 'views/grammar_screen.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  // Khởi tạo ViewModel tại gốc ứng dụng
-  final VocabViewModel _vocabViewModel = VocabViewModel();
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: MainScreen(viewModel: _vocabViewModel),
+      title: 'Magic English',
+      themeMode: ThemeMode.light,
+      theme: ThemeData(
+        brightness: Brightness.light,
+        primaryColor: const Color(0xFF0B5394),
+        scaffoldBackgroundColor: Colors.white,
+        useMaterial3: true,
+      ),
+      home: const WelcomeScreen(),
     );
   }
 }
 
 class MainScreen extends StatefulWidget {
   final VocabViewModel viewModel;
-  const MainScreen({super.key, required this.viewModel});
+  final bool isGuest;
+
+  const MainScreen({
+    super.key,
+    required this.viewModel,
+    this.isGuest = false,
+  });
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 1;
+  int _currentIndex = 0;
+
+  void _onTabTapped(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Truyền ViewModel vào VocabScreen
     final List<Widget> screens = [
-      const Center(child: Text("Home")),
-      VocabScreen(viewModel: widget.viewModel), 
-      const Center(child: Text("Grammar")),
-      const Center(child: Text("Stats")),
+      HomeScreen(isGuest: widget.isGuest, onNavigateToTab: _onTabTapped),
+      VocabScreen(viewModel: widget.viewModel),
+      const GrammarScreen(),
+      const StatisticScreen(),
     ];
 
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: screens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (idx) => setState(() => _currentIndex = idx),
+        onTap: _onTabTapped,
         selectedItemColor: const Color(0xFF0B5394),
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        elevation: 10,
+        showUnselectedLabels: true,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.book), label: "Vocab"),
-          BottomNavigationBarItem(icon: Icon(Icons.edit), label: "Grammar"),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Stats"),
+          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.menu_book_rounded), label: "Vocab"),
+          BottomNavigationBarItem(icon: Icon(Icons.spellcheck_rounded), label: "Grammar"),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart_rounded), label: "Stats"),
         ],
       ),
     );
