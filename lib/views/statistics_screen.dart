@@ -135,7 +135,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                             clipBehavior: Clip.antiAlias,
                                             decoration: BoxDecoration(),
                                             child: SvgPicture.asset(
-                                              'assets/icons/f.svg',
+                                              'assets/icons/fire.svg',
                                               fit: BoxFit.contain
                                             ),
                                           ),

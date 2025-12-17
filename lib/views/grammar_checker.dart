@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:magic_english_app/views/grammar_screen.dart';
 class GrammarChecker extends StatefulWidget {
   const GrammarChecker({super.key});
 
@@ -1815,6 +1816,14 @@ class _GrammarCheckerState extends State<GrammarChecker> {
                                                         ),
                                                       ),
                                                     ),
+                                                    GestureDetector(
+                                                      onTap: () {
+                                                        Navigator.pop(
+                                                          context,
+                                                            MaterialPageRoute(builder: (context) => const GrammarScreen()),
+                                                          );
+                                                        }
+                                                    ),
                                                   ],
                                                 ),
                                               ),
@@ -1844,6 +1853,14 @@ class _GrammarCheckerState extends State<GrammarChecker> {
                                                           height: 1.50,
                                                         ),
                                                       ),
+                                                    ),
+                                                    GestureDetector(
+                                                      onTap: () {
+                                                        Navigator.pop(
+                                                          context,
+                                                            MaterialPageRoute(builder: (context) => const GrammarScreen()),
+                                                          );
+                                                        }
                                                     ),
                                                   ],
                                                 ),
