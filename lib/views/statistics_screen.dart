@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../view_models/stats_view_model.dart';
+import '../view_models/streak_view_model.dart';
 
 class  StatisticScreen extends StatefulWidget {
   const StatisticScreen({super.key});
@@ -9,6 +12,33 @@ class  StatisticScreen extends StatefulWidget {
 }
 
 class _StatisticScreenState extends State<StatisticScreen> {
+  final String userId = 'demo_user';
+
+  late final Stream<DocumentSnapshot> statsStream;
+  late final Stream<DocumentSnapshot> streakStream;
+  final statsVM = StatsViewModel();
+  final streakVM = StreakViewModel();
+
+  @override
+  void initState() {
+    super.initState();
+    statsVM.load();
+    streakVM.load();
+    statsStream = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('stats')
+        .doc('main')
+        .snapshots();
+
+    streakStream = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('streak')
+        .doc('main')
+        .snapshots();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -154,17 +184,28 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                           Positioned(
                                             left: 97.95,
                                             top: -1.73,
-                                            child: Text(
-                                              '12 Days',
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 16,
-                                                fontFamily: 'Inter',
-                                                fontWeight: FontWeight.w400,
-                                                height: 1.50,
-                                              ),
-                                            ),
+                                            child: StreamBuilder<DocumentSnapshot>(
+                                              stream: streakStream,
+                                              builder: (context, snapshot) {
+                                                if (!snapshot.hasData) return const Text('...');
+
+                                                final data = snapshot.data!.data() as Map<String, dynamic>?;
+
+                                                final current = data?['current'] ?? 0;
+
+                                                return Text(
+                                                  '$current Days',
+                                                  textAlign: TextAlign.center,
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 16,
+                                                    fontFamily: 'Inter',
+                                                    fontWeight: FontWeight.w400,
+                                                    height: 1.50,
+                                                  ),
+                                                );
+                                              },
+                                            ),                                    
                                           ),
                                         ],
                                       ),
@@ -336,15 +377,26 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                                 top: -1.73,
                                                                 child: SizedBox(
                                                                   width: 79,
-                                                                  child: Text(
-                                                                    'Nouns: 42',
-                                                                    style: TextStyle(
-                                                                      color: const Color(0xFF354152),
-                                                                      fontSize: 16,
-                                                                      fontFamily: 'Inter',
-                                                                      fontWeight: FontWeight.w400,
-                                                                      height: 1.50,
-                                                                    ),
+                                                                  child: StreamBuilder<DocumentSnapshot>(
+                                                                    stream: statsStream,
+                                                                    builder: (context, snapshot) {
+                                                                      if (!snapshot.hasData) return const Text('Nouns: ...');
+
+                                                                      final data = snapshot.data!.data() as Map<String, dynamic>?;
+
+                                                                      final noun = data?['noun'] ?? 0;
+
+                                                                      return Text(
+                                                                        'Nouns: $noun',
+                                                                        style: const TextStyle(
+                                                                          color: Color(0xFF354152),
+                                                                          fontSize: 16,
+                                                                          fontFamily: 'Inter',
+                                                                          fontWeight: FontWeight.w400,
+                                                                          height: 1.50,
+                                                                        ),
+                                                                      );
+                                                                    },
                                                                   ),
                                                                 ),
                                                               ),
@@ -387,15 +439,26 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                                 top: -1.73,
                                                                 child: SizedBox(
                                                                   width: 73,
-                                                                  child: Text(
-                                                                    'Verbs: 28',
-                                                                    style: TextStyle(
-                                                                      color: const Color(0xFF354152),
-                                                                      fontSize: 16,
-                                                                      fontFamily: 'Inter',
-                                                                      fontWeight: FontWeight.w400,
-                                                                      height: 1.50,
-                                                                    ),
+                                                                  child: StreamBuilder<DocumentSnapshot>(
+                                                                    stream: statsStream,
+                                                                    builder: (context, snapshot) {
+                                                                      if (!snapshot.hasData) return const Text('Verbs: ...');
+
+                                                                      final data = snapshot.data!.data() as Map<String, dynamic>?;
+
+                                                                      final verb = data?['verb'] ?? 0;
+
+                                                                      return Text(
+                                                                        'Verbs: $verb',
+                                                                        style: const TextStyle(
+                                                                          color: Color(0xFF354152),
+                                                                          fontSize: 16,
+                                                                          fontFamily: 'Inter',
+                                                                          fontWeight: FontWeight.w400,
+                                                                          height: 1.50,
+                                                                        ),
+                                                                      );
+                                                                    },
                                                                   ),
                                                                 ),
                                                               ),
@@ -430,17 +493,28 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                               ),
                                                               const SizedBox(width: 7),
                                                               Expanded(
-                                                                child: Text(
-                                                                  'Adjectives: 35',
-                                                                  maxLines: 1,
-                                                                  overflow: TextOverflow.ellipsis,
-                                                                  style: const TextStyle(
-                                                                    color: Color(0xFF354152),
-                                                                    fontSize: 16,
-                                                                    fontFamily: 'Inter',
-                                                                    fontWeight: FontWeight.w400,
-                                                                    height: 1.50,
-                                                                  ),
+                                                                child: StreamBuilder<DocumentSnapshot>(
+                                                                  stream: statsStream,
+                                                                  builder: (context, snapshot) {
+                                                                    if (!snapshot.hasData) return const Text('Adjectives: ...');
+
+                                                                    final data = snapshot.data!.data() as Map<String, dynamic>?;
+
+                                                                    final adj = data?['adj'] ?? 0;
+
+                                                                    return Text(
+                                                                      'Adjectives: $adj',
+                                                                      maxLines: 1,
+                                                                      overflow: TextOverflow.ellipsis,
+                                                                      style: const TextStyle(
+                                                                        color: Color(0xFF354152),
+                                                                        fontSize: 16,
+                                                                        fontFamily: 'Inter',
+                                                                        fontWeight: FontWeight.w400,
+                                                                        height: 1.50,
+                                                                      ),
+                                                                    );
+                                                                  },
                                                                 ),
                                                               ),
                                                             ],
@@ -482,15 +556,26 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                                 top: -1.73,
                                                                 child: SizedBox(
                                                                   width: 89,
-                                                                  child: Text(
-                                                                    'Adverbs: 15',
-                                                                    style: TextStyle(
-                                                                      color: const Color(0xFF354152),
-                                                                      fontSize: 16,
-                                                                      fontFamily: 'Inter',
-                                                                      fontWeight: FontWeight.w400,
-                                                                      height: 1.50,
-                                                                    ),
+                                                                  child: StreamBuilder<DocumentSnapshot>(
+                                                                    stream: statsStream,
+                                                                    builder: (context, snapshot) {
+                                                                      if (!snapshot.hasData) return const Text('Adverbs: ...');
+
+                                                                      final data = snapshot.data!.data() as Map<String, dynamic>?;
+
+                                                                      final adv = data?['adv'] ?? 0;
+
+                                                                      return Text(
+                                                                        'Adverbs: $adv',
+                                                                        style: const TextStyle(
+                                                                          color: Color(0xFF354152),
+                                                                          fontSize: 16,
+                                                                          fontFamily: 'Inter',
+                                                                          fontWeight: FontWeight.w400,
+                                                                          height: 1.50,
+                                                                        ),
+                                                                      );
+                                                                    },
                                                                   ),
                                                                 ),
                                                               ),
@@ -533,15 +618,25 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                                 top: -1.30,
                                                                 child: SizedBox(
                                                                   width: 114,
-                                                                  child: Text(
-                                                                    'Others: 10',
-                                                                    style: TextStyle(
-                                                                      color: const Color(0xFF354152),
-                                                                      fontSize: 16,
-                                                                      fontFamily: 'Inter',
-                                                                      fontWeight: FontWeight.w400,
-                                                                      height: 1.50,
-                                                                    ),
+                                                                  child: StreamBuilder<DocumentSnapshot>(
+                                                                    stream: statsStream,
+                                                                    builder: (context, snapshot) {
+                                                                      if (!snapshot.hasData) return const Text('Others: ...');
+
+                                                                      final data = snapshot.data!.data() as Map<String, dynamic>?;
+                                                                      final other = data?['other'] ?? 0;
+
+                                                                      return Text(
+                                                                        'Others: $other',
+                                                                        style: const TextStyle(
+                                                                          color: Color(0xFF354152),
+                                                                          fontSize: 16,
+                                                                          fontFamily: 'Inter',
+                                                                          fontWeight: FontWeight.w400,
+                                                                          height: 1.50,
+                                                                        ),
+                                                                      );
+                                                                    },
                                                                   ),
                                                                 ),
                                                               ),
@@ -839,16 +934,26 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                           top: -1.73,
                                           child: SizedBox(
                                             width: 189,
-                                            child: Text(
-                                              'Total: 208 words learned',
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                color: const Color(0xFF495565),
-                                                fontSize: 16,
-                                                fontFamily: 'Inter',
-                                                fontWeight: FontWeight.w400,
-                                                height: 1.50,
-                                              ),
+                                            child: StreamBuilder<DocumentSnapshot>(
+                                              stream: statsStream,
+                                              builder: (context, snapshot) {
+                                                if (!snapshot.hasData) return const Text('Total: ...');
+
+                                                final data = snapshot.data!.data() as Map<String, dynamic>?;
+                                                final total = data?['total'] ?? 0;
+
+                                                return Text(
+                                                  'Total: $total words learned',
+                                                  textAlign: TextAlign.center,
+                                                  style: const TextStyle(
+                                                    color: Color(0xFF495565),
+                                                    fontSize: 16,
+                                                    fontFamily: 'Inter',
+                                                    fontWeight: FontWeight.w400,
+                                                    height: 1.50,
+                                                  ),
+                                                );
+                                              },
                                             ),
                                           ),
                                         ),
@@ -1967,15 +2072,18 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                 Positioned(
                                                   left: 15.25,
                                                   top: -1.73,
-                                                  child: Text(
-                                                    '208',
-                                                    textAlign: TextAlign.center,
-                                                    style: TextStyle(
-                                                      color: const Color(0xFF10B981),
-                                                      fontSize: 16,
-                                                      fontFamily: 'Inter',
-                                                      fontWeight: FontWeight.w400,
-                                                      height: 1.50,
+                                                  child: ValueListenableBuilder<int>(
+                                                    valueListenable: statsVM.totalWords,
+                                                    builder: (context, value, _) => Text(
+                                                      '$value',
+                                                      textAlign: TextAlign.center,
+                                                      style: const TextStyle(
+                                                        color: Color(0xFF10B981),
+                                                        fontSize: 16,
+                                                        fontFamily: 'Inter',
+                                                        fontWeight: FontWeight.w400,
+                                                        height: 1.50,
+                                                      ),
                                                     ),
                                                   ),
                                                 ),
@@ -2048,17 +2156,20 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                 Positioned(
                                                   left: 20,
                                                   top: -1.73,
-                                                  child: Text(
-                                                    '12',
-                                                    textAlign: TextAlign.center,
-                                                    style: TextStyle(
-                                                      color: const Color(0xFF0B5394),
-                                                      fontSize: 16,
-                                                      fontFamily: 'Inter',
-                                                      fontWeight: FontWeight.w400,
-                                                      height: 1.50,
+                                                  child: ValueListenableBuilder<int>(
+                                                    valueListenable: streakVM.streakDays,
+                                                      builder: (context, value, _) => Text(
+                                                        '$value',
+                                                        textAlign: TextAlign.center,
+                                                        style: const TextStyle(
+                                                          color: Color(0xFF0B5394),
+                                                          fontSize: 16,
+                                                          fontFamily: 'Inter',
+                                                          fontWeight: FontWeight.w400,
+                                                          height: 1.50,
+                                                        ),
+                                                      ),
                                                     ),
-                                                  ),
                                                 ),
                                               ],
                                             ),
@@ -2129,15 +2240,18 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                 Positioned(
                                                   left: 16.36,
                                                   top: -1.73,
-                                                  child: Text(
-                                                    '89%',
-                                                    textAlign: TextAlign.center,
-                                                    style: TextStyle(
-                                                      color: const Color(0xFFFF6B35),
-                                                      fontSize: 16,
-                                                      fontFamily: 'Inter',
-                                                      fontWeight: FontWeight.w400,
-                                                      height: 1.50,
+                                                  child: ValueListenableBuilder<double>(
+                                                    valueListenable: statsVM.accuracy,
+                                                    builder: (context, value, _) => Text(
+                                                      '${(value * 100).toStringAsFixed(0)}%',
+                                                      textAlign: TextAlign.center,
+                                                      style: const TextStyle(
+                                                        color: Color(0xFFFF6B35),
+                                                        fontSize: 16,
+                                                        fontFamily: 'Inter',
+                                                        fontWeight: FontWeight.w400,
+                                                        height: 1.50,
+                                                      ),
                                                     ),
                                                   ),
                                                 ),

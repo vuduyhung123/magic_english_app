@@ -1,13 +1,20 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:magic_english_app/views/grammar_checker.dart';
 import 'package:magic_english_app/views/statistics_screen.dart';
 import 'view_models/vocab_view_model.dart';
 import 'views/vocab_screen.dart';
 import 'views/welcome_screen.dart';
 import 'views/home_screen.dart';
 import 'views/grammar_screen.dart';
+import 'firebase_options.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  FirebaseFirestore.instance.useFirestoreEmulator('192.168.33.100', 8080);
   runApp(const MyApp());
 }
 
