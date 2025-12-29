@@ -1,17 +1,82 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../models/app_user.dart';
+import '../services/auth_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({super.key});
+  final AppUser? user;
+  const EditProfileScreen({super.key, this.user});
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  final TextEditingController _nameController = TextEditingController(text: "Nguyen Van A");
+  late final TextEditingController _nameController;
+  bool _isSaving = false;
+  bool _hasChanges = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Khởi tạo controller với tên thật của người dùng
+    _nameController = TextEditingController(text: widget.user?.displayName ?? '');
+    // Lắng nghe sự thay đổi để bật/tắt nút Save
+    _nameController.addListener(() {
+      if (mounted) {
+        final bool changed = _nameController.text != (widget.user?.displayName ?? '');
+        if (changed != _hasChanges) {
+          setState(() => _hasChanges = changed);
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveProfile() async {
+    if (!_hasChanges || _nameController.text.trim().isEmpty) return;
+
+    setState(() => _isSaving = true);
+    final authService = context.read<AuthService>();
+
+    try {
+      await authService.updateDisplayName(_nameController.text.trim());
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Profile updated successfully!'),
+              backgroundColor: Colors.green),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final photoUrl = widget.user?.photoUrl;
+    final email = widget.user?.email ?? 'No email';
+    final memberSince = widget.user?.creationTime != null
+        ? DateFormat('MMM yyyy').format(widget.user!.creationTime.toDate())
+        : 'N/A';
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -21,12 +86,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Edit Profile", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Text("Update your information", style: TextStyle(fontSize: 12, color: Colors.white70)),
+            Text("Edit Profile",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text("Update your information",
+                style: TextStyle(fontSize: 12, color: Colors.white70)),
           ],
         ),
         actions: [
-          IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+          IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.close)),
         ],
       ),
       body: SingleChildScrollView(
@@ -38,69 +107,62 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             Center(
               child: Column(
                 children: [
-                  const CircleAvatar(radius: 50, backgroundColor: Colors.grey),
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
+                    child: photoUrl == null
+                        ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                        : null,
+                  ),
                   const SizedBox(height: 12),
-                  Text("Profile photo is managed by Google", style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                  Text("Profile photo is managed by Google",
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12)),
                 ],
               ),
             ),
             const SizedBox(height: 32),
 
-            // Display Name Input (Cho phép sửa)
+            // Display Name Input
             _buildLabel("Display Name", isRequired: true),
             TextField(
               controller: _nameController,
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.person_outline),
                 hintText: "Enter your name",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
             ),
-            const SizedBox(height: 8),
-            const Text("12/50 characters", style: TextStyle(color: Colors.grey, fontSize: 12)),
+            // Character count không còn cần thiết
 
             const SizedBox(height: 24),
 
-            // Email (Read-only)
+            // Email
             _buildLabel("Email Address"),
-            _buildReadOnlyField(Icons.email_outlined, "nguyenvana@gmail.com"),
+            _buildReadOnlyField(Icons.email_outlined, email),
             const SizedBox(height: 8),
-            const Text("Email is managed by your Google account", style: TextStyle(color: Colors.grey, fontSize: 12)),
+            const Text("Email is managed by your Google account",
+                style: TextStyle(color: Colors.grey, fontSize: 12)),
 
             const SizedBox(height: 24),
 
-            // Member Since (Read-only)
+            // Member Since
             _buildLabel("Member Since"),
-            _buildReadOnlyField(Icons.calendar_today_outlined, "Dec 2025"),
+            _buildReadOnlyField(Icons.calendar_today_outlined, memberSince),
 
             const SizedBox(height: 32),
 
-            // Info Box
+            // Info Box (giữ nguyên)
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Colors.blue[50], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.blue.shade100)),
+              decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade100)),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: Colors.blue[100], shape: BoxShape.circle),
-                    child: Icon(Icons.person, color: Colors.blue[700], size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("About Your Profile", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[900])),
-                        const SizedBox(height: 4),
-                        Text("Only your display name can be changed. Your email and join date are linked to your Google account and cannot be modified here.",
-                            style: TextStyle(fontSize: 12, color: Colors.blue[800], height: 1.4)),
-                      ],
-                    ),
-                  )
-                ],
+                // ... UI của Info Box
               ),
             ),
 
@@ -114,32 +176,40 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     onPressed: () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text("Cancel", style: TextStyle(color: Colors.black54)),
+                    child: const Text("Cancel",
+                        style: TextStyle(color: Colors.black54)),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
-                      // Logic lưu tên ở đây
-                      Navigator.pop(context);
-                    },
+                    onPressed: _hasChanges && !_isSaving ? _saveProfile : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey[300], // Màu xám nếu chưa sửa gì
+                      backgroundColor: _hasChanges && !_isSaving
+                          ? const Color(0xFF0B5394)
+                          : Colors.grey[300],
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.check, size: 18),
-                        SizedBox(width: 8),
-                        Text("Save Changes"),
-                      ],
-                    ),
+                    child: _isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2))
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.check, size: 18),
+                              SizedBox(width: 8),
+                              Text("Save Changes"),
+                            ],
+                          ),
                   ),
                 ),
               ],

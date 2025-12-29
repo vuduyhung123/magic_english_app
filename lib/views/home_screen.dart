@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
+import '../models/app_user.dart';
 import 'account_review_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   final Function(int) onNavigateToTab;
   final bool isGuest;
+  final AppUser? user; // Thêm tham số để nhận dữ liệu người dùng
 
   const HomeScreen({
     super.key,
     required this.onNavigateToTab,
-    this.isGuest = false
+    this.isGuest = false,
+    this.user, // Constructor nhận AppUser
   });
 
   @override
   Widget build(BuildContext context) {
+    // KHÔI PHỤC LẠI TOÀN BỘ GIAO DIỆN
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: SingleChildScrollView(
@@ -58,6 +62,10 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
+    // TÍCH HỢP LOGIC HIỂN THỊ THÔNG TIN THẬT
+    final displayName = isGuest ? "Guest Learner" : (user?.displayName ?? "...");
+    final photoUrl = user?.photoUrl;
+
     return Container(
       padding: const EdgeInsets.only(top: 60, left: 24, right: 24, bottom: 30),
       decoration: const BoxDecoration(
@@ -74,17 +82,21 @@ class HomeScreen extends StatelessWidget {
                 children: [
                   const Text("Welcome back!", style: TextStyle(color: Colors.white70, fontSize: 16)),
                   const SizedBox(height: 4),
-                  Text(isGuest ? "Guest Learner" : "Nguyen Van A", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                  // Hiển thị tên thật
+                  Text(displayName, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                 ],
               ),
               GestureDetector(
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => AccountReviewScreen(isGuest: isGuest)));
+                  // Truyền AppUser sang màn hình review
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => AccountReviewScreen(isGuest: isGuest, user: user)));
                 },
-                child: const CircleAvatar(
+                // Hiển thị ảnh đại diện thật
+                child: CircleAvatar(
                   radius: 24,
                   backgroundColor: Colors.white24,
-                  child: Icon(Icons.person, color: Colors.white),
+                  backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
+                  child: photoUrl == null ? const Icon(Icons.person, color: Colors.white) : null,
                 ),
               )
             ],
@@ -106,6 +118,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  // CÁC HÀM BUILD GIAO DIỆN KHÁC ĐƯỢC GIỮ NGUYÊN
   Widget _buildStatCard({required Color color, required Color iconColor, required IconData icon, required String title, required String value, required String subtitle}) {
     return Container(
       padding: const EdgeInsets.all(20),

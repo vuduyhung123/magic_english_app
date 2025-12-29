@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
+import 'models/app_user.dart';
 import 'services/ai_service.dart';
+import 'services/auth_service.dart';
 import 'view_models/vocab_view_model.dart';
 import 'view_models/grammar_view_model.dart';
 import 'views/welcome_screen.dart';
@@ -13,8 +17,11 @@ import 'views/statistics_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Load .env file
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   try {
     await dotenv.load(fileName: ".env");
     debugPrint('✅ .env file loaded successfully');
@@ -30,18 +37,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Khởi tạo AI Service (Sử dụng Factory để tránh lỗi thiếu tham số)
     final aiService = _createAIService();
 
     return MultiProvider(
       providers: [
-        // Provide AIService globally
         Provider<AIService>.value(value: aiService),
-        
-        // ViewModels
+        Provider<AuthService>(create: (_) => AuthService()),
         ChangeNotifierProvider(
-          // Cập nhật: Truyền aiService vào VocabViewModel (nếu ViewModel của bạn yêu cầu)
-          // Nếu VocabViewModel chưa có tham số này trong constructor, bạn có thể để trống () như cũ
           create: (context) => VocabViewModel(aiService: context.read<AIService>()),
         ),
         ChangeNotifierProvider(
@@ -64,19 +66,14 @@ class MyApp extends StatelessWidget {
     );
   }
 
-  /// Tạo AI Service sử dụng Factory để tự động xử lý logic và tham số
   AIService _createAIService() {
     final useOllama = dotenv.env['USE_OLLAMA']?.toLowerCase() == 'true';
-    
-    // Lấy API Key tương ứng dựa trên cấu hình
-    final apiKey = useOllama 
-        ? dotenv.env['OLLAMA_API_KEY'] 
+    final apiKey = useOllama
+        ? dotenv.env['OLLAMA_API_KEY']
         : dotenv.env['ANTHROPIC_API_KEY'];
 
     debugPrint('🤖 Initializing AI Service (Ollama: $useOllama)...');
 
-    // Sử dụng Factory đã viết trong ai_service.dart
-    // Factory sẽ tự động lấy baseUrl và model từ tham số truyền vào hoặc dùng mặc định
     return AIServiceFactory.create(
       useOllama: useOllama,
       apiKey: apiKey,
@@ -86,7 +83,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// MainScreen widget (Giữ nguyên)
+// NÂNG CẤP MainScreen để tải dữ liệu người dùng
 class MainScreen extends StatefulWidget {
   final VocabViewModel viewModel;
   final bool isGuest;
@@ -103,6 +100,36 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+  AppUser? _appUser;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    if (widget.isGuest) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    final authService = context.read<AuthService>();
+    final firebaseUser = authService.currentUser;
+
+    if (firebaseUser != null) {
+      final user = await authService.getAppUser(firebaseUser.uid);
+      if (mounted) {
+        setState(() {
+          _appUser = user;
+          _isLoading = false;
+        });
+      }
+    } else {
+      setState(() => _isLoading = false);
+    }
+  }
 
   void _onTabTapped(int index) {
     setState(() {
@@ -112,8 +139,14 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final List<Widget> screens = [
-      HomeScreen(isGuest: widget.isGuest, onNavigateToTab: _onTabTapped),
+      HomeScreen(isGuest: widget.isGuest, onNavigateToTab: _onTabTapped, user: _appUser),
       VocabScreen(viewModel: widget.viewModel),
       const GrammarScreen(),
       const StatisticScreen(),

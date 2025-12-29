@@ -26,11 +26,20 @@ dependencies:
   
   # Utils
   url_launcher: ^6.2.4
+  intl: ^0.19.0
+
+  # Firebase & Auth
+  firebase_core: ^3.1.1
+  firebase_auth: ^5.1.1
+  google_sign_in: ^6.2.1
+  cloud_firestore: ^5.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+
+
 
 flutter:
   uses-material-design: true
@@ -38,4 +47,4 @@ flutter:
   assets:
     - assets/icons/
     - assets/images/
-    - .env  # 👈 Thêm dòng này để load file .env
+    - .env

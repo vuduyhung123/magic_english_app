@@ -1,31 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // 1. Thêm import này để dùng Provider
-//import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_service.dart';
 import '../main.dart';
 import '../view_models/vocab_view_model.dart';
-import '../services/ai_service.dart'; // 2. Thêm import này để biết kiểu AIService
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
-  // Mở trang Google bằng WebView trong App
-  Future<void> _openGoogleSignInPage(BuildContext context) async {
-    final Uri url = Uri.parse('https://accounts.google.com/ServiceLogin');
-    // Code logic url_launcher giữ nguyên hoặc bỏ comment nếu cần dùng
-    throw Exception('Could not launch $url');
-  }
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
 
-  // Điều hướng vào trang chủ (có cờ isGuest)
+class _LoginScreenState extends State<LoginScreen> {
+  bool _isLoading = false;
+
+  // Điều hướng vào trang chủ
   void _navigateToHome(BuildContext context, {bool isGuest = false}) {
-    // 3. QUAN TRỌNG: Lấy aiService đang chạy từ Provider của main.dart
-    final aiService = Provider.of<AIService>(context, listen: false);
+    // Lấy viewModel từ Provider để truyền vào MainScreen, giữ nguyên luồng cũ
+    final vocabViewModel = Provider.of<VocabViewModel>(context, listen: false);
 
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
         builder: (context) => MainScreen(
-          // 4. Truyền aiService vào VocabViewModel
-          viewModel: VocabViewModel(aiService: aiService), 
+          viewModel: vocabViewModel,
           isGuest: isGuest,
         ),
       ),
@@ -33,50 +31,33 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  void _showGoogleAccountChooser(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      backgroundColor: Colors.white,
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Text("Choose an account to continue to Magic English", style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-              const Divider(),
-              _buildAccountItem(context, "Nguyen Van A", "nguyenvana@gmail.com"),
-              _buildAccountItem(context, "Tran Thi B", "tranthib.work@gmail.com"),
-              const Divider(),
-              ListTile(
-                leading: CircleAvatar(backgroundColor: Colors.grey[200], child: const Icon(Icons.add, color: Colors.black54)),
-                title: const Text("Use another account", style: TextStyle(fontWeight: FontWeight.w500)),
-                onTap: () {
-                  Navigator.pop(context);
-                  _openGoogleSignInPage(context);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  // Xử lý đăng nhập Google
+  Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _isLoading = true;
+    });
 
-  Widget _buildAccountItem(BuildContext context, String name, String email) {
-    return ListTile(
-      leading: const CircleAvatar(child: Icon(Icons.person)),
-      title: Text(name, style: const TextStyle(fontWeight: FontWeight.w500)),
-      subtitle: Text(email),
-      onTap: () {
-        Navigator.pop(context);
-        _navigateToHome(context, isGuest: false); // Đăng nhập thường
-      },
-    );
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = await authService.signInWithGoogle();
+
+    // Nếu widget không còn trên cây widget, ta không làm gì cả
+    if (!mounted) return;
+
+    if (user != null) {
+      // Đăng nhập thành công, điều hướng đến trang chủ
+      _navigateToHome(context, isGuest: false);
+    } else {
+      // Đăng nhập thất bại hoặc bị hủy, dừng loading và thông báo
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đăng nhập Google thất bại hoặc đã bị hủy.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -107,19 +88,26 @@ class LoginScreen extends StatelessWidget {
               child: Column(
                 children: [
                   OutlinedButton(
-                    onPressed: () => _showGoogleAccountChooser(context),
+                    onPressed: _isLoading ? null : _handleGoogleSignIn,
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      minimumSize: const Size(double.infinity, 50),
                     ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.g_mobiledata, size: 30),
-                        SizedBox(width: 8),
-                        Text("Continue with Google", style: TextStyle(color: Colors.black87, fontSize: 16)),
-                      ],
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 3, color: Color(0xFF0B5394)),
+                          )
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.g_mobiledata, size: 30),
+                              SizedBox(width: 8),
+                              Text("Continue with Google", style: TextStyle(color: Colors.black87, fontSize: 16)),
+                            ],
+                          ),
                   ),
                   const SizedBox(height: 20),
                   const Text("or", style: TextStyle(color: Colors.grey)),
@@ -128,7 +116,8 @@ class LoginScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: () => _navigateToHome(context, isGuest: true), // Đăng nhập Guest
+                      // Giữ nguyên chức năng đăng nhập khách
+                      onPressed: () => _navigateToHome(context, isGuest: true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.grey[100],
                         foregroundColor: Colors.black87,
