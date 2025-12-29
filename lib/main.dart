@@ -1,7 +1,27 @@
 import 'package:flutter/material.dart';
-import 'vocab_screen.dart'; // Import file màn hình Vocab bạn đã có
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:provider/provider.dart';
 
-void main() {
+import 'services/ai_service.dart';
+import 'view_models/vocab_view_model.dart';
+import 'view_models/grammar_view_model.dart';
+import 'views/welcome_screen.dart';
+import 'views/home_screen.dart';
+import 'views/vocab_screen.dart';
+import 'views/grammar_screen.dart';
+import 'views/statistics_screen.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Load .env file
+  try {
+    await dotenv.load(fileName: ".env");
+    debugPrint('✅ .env file loaded successfully');
+  } catch (e) {
+    debugPrint('⚠️ .env file not found, using defaults: $e');
+  }
+
   runApp(const MyApp());
 }
 
@@ -10,125 +30,112 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'English Learning App',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: const Color(0xFF0B5394),
-        useMaterial3: true,
-        fontFamily: 'Roboto',
+    // 1. Khởi tạo AI Service (Sử dụng Factory để tránh lỗi thiếu tham số)
+    final aiService = _createAIService();
+
+    return MultiProvider(
+      providers: [
+        // Provide AIService globally
+        Provider<AIService>.value(value: aiService),
+        
+        // ViewModels
+        ChangeNotifierProvider(
+          // Cập nhật: Truyền aiService vào VocabViewModel (nếu ViewModel của bạn yêu cầu)
+          // Nếu VocabViewModel chưa có tham số này trong constructor, bạn có thể để trống () như cũ
+          create: (context) => VocabViewModel(aiService: context.read<AIService>()),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => GrammarViewModel(
+            aiService: context.read<AIService>(),
+          ),
+        ),
+      ],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Magic English',
+        theme: ThemeData(
+          brightness: Brightness.light,
+          primaryColor: const Color(0xFF0B5394),
+          scaffoldBackgroundColor: Colors.white,
+          useMaterial3: true,
+        ),
+        home: const WelcomeScreen(),
       ),
-      home: const MainScreen(),
+    );
+  }
+
+  /// Tạo AI Service sử dụng Factory để tự động xử lý logic và tham số
+  AIService _createAIService() {
+    final useOllama = dotenv.env['USE_OLLAMA']?.toLowerCase() == 'true';
+    
+    // Lấy API Key tương ứng dựa trên cấu hình
+    final apiKey = useOllama 
+        ? dotenv.env['OLLAMA_API_KEY'] 
+        : dotenv.env['ANTHROPIC_API_KEY'];
+
+    debugPrint('🤖 Initializing AI Service (Ollama: $useOllama)...');
+
+    // Sử dụng Factory đã viết trong ai_service.dart
+    // Factory sẽ tự động lấy baseUrl và model từ tham số truyền vào hoặc dùng mặc định
+    return AIServiceFactory.create(
+      useOllama: useOllama,
+      apiKey: apiKey,
+      baseUrl: dotenv.env['OLLAMA_BASE_URL'],
+      model: dotenv.env['OLLAMA_MODEL'],
     );
   }
 }
 
+// MainScreen widget (Giữ nguyên)
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final VocabViewModel viewModel;
+  final bool isGuest;
+
+  const MainScreen({
+    super.key,
+    required this.viewModel,
+    this.isGuest = false,
+  });
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  
-  int _currentIndex = 1;
+  int _currentIndex = 0;
 
-  
-  final List<Widget> _screens = [
-    const PlaceholderScreen(title: "Home Screen", icon: Icons.home),
-    const VocabScreen(), 
-    const PlaceholderScreen(title: "Grammar Screen", icon: Icons.edit),
-    const PlaceholderScreen(title: "Stats Screen", icon: Icons.bar_chart),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    
-    const primaryColor = Color(0xFF0B5394);
-
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
-      
-      // Footer (Bottom Navigation)
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: Colors.black12, width: 1)),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          type: BottomNavigationBarType.fixed, 
-          backgroundColor: Colors.white,
-          selectedItemColor: primaryColor, 
-          unselectedItemColor: Colors.grey.shade400, 
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 12),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.book_outlined), 
-              activeIcon: Icon(Icons.book),
-              label: 'Vocab',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.edit_outlined), 
-              activeIcon: Icon(Icons.edit),
-              label: 'Grammar',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.bar_chart_outlined), 
-              activeIcon: Icon(Icons.bar_chart),
-              label: 'Stats',
-            ),
-          ],
-        ),
-      ),
-    );
+  void _onTabTapped(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
   }
-}
-
-// --- Màn hình tạm thời (Placeholder) ---
-// Dùng để hiển thị cho các tab chưa làm xong
-class PlaceholderScreen extends StatelessWidget {
-  final String title;
-  final IconData icon;
-
-  const PlaceholderScreen({super.key, required this.title, required this.icon});
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> screens = [
+      HomeScreen(isGuest: widget.isGuest, onNavigateToTab: _onTabTapped),
+      VocabScreen(viewModel: widget.viewModel),
+      const GrammarScreen(),
+      const StatisticScreen(),
+    ];
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
+      body: IndexedStack(index: _currentIndex, children: screens),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: _onTabTapped,
+        selectedItemColor: const Color(0xFF0B5394),
+        unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 80, color: Colors.grey.shade300),
-            const SizedBox(height: 16),
-            Text(
-              "$title\n(Coming Soon)",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18, color: Colors.grey.shade500),
-            ),
-          ],
-        ),
+        elevation: 10,
+        showUnselectedLabels: true,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.menu_book_rounded), label: "Vocab"),
+          BottomNavigationBarItem(icon: Icon(Icons.spellcheck_rounded), label: "Grammar"),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart_rounded), label: "Stats"),
+        ],
       ),
     );
   }
