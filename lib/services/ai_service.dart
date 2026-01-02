@@ -121,7 +121,7 @@ Return ONLY raw JSON (no markdown) with this structure:
           "messages": [
             {"role": "user", "content": content},
           ],
-          "temperature": 0.2, // Giảm nhiệt độ để kết quả chính xác hơn
+          "temperature": 0.1,
           "response_format": {"type": "json_object"},
         },
       );

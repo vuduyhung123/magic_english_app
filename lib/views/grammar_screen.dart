@@ -274,6 +274,54 @@ class _GrammarScreenState extends State<GrammarScreen> {
             ),
           )
         ],
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () async {
+                  await viewModel.saveGrammarResultToFirebase();
+                  viewModel.reset();
+                  _textController.clear();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white70,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text("Check New Text", style: TextStyle(fontSize: 16, color: Colors.indigo)),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () async {
+                  viewModel.applyAllSuggestions();
+                  _textController.text = viewModel.currentText;
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('All suggestions applied and saved successfully!'),
+                        duration: Duration(seconds: 2),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                  await Future.delayed(const Duration(seconds: 2));
+                  if (context.mounted) {
+                    viewModel.reset(); 
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.indigo,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text("Apply All", style: TextStyle(fontSize: 16, color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 40),
       ],
     );

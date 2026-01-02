@@ -22,7 +22,7 @@ class GrammarError {
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toJson() {
     return {
       'type': type,
       'message': message,
@@ -54,11 +54,11 @@ class GrammarResult {
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toJson() {
     return {
       'score': score,
       'betterVersion': betterVersion,
-      'errors': errors.map((e) => e.toFirestore()).toList(),
+      'errors': errors.map((e) => e.toJson()).toList(),
     };
   }
 }

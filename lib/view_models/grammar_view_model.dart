@@ -91,8 +91,8 @@ class GrammarViewModel extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    if (trimmed.length < 10) {
-      _error = 'Văn bản quá ngắn (tối thiểu 10 ký tự)';
+    if (trimmed.length < 6) {
+      _error = 'Văn bản quá ngắn (tối thiểu 6 ký tự)';
       notifyListeners();
       return;
     }
@@ -106,10 +106,6 @@ class GrammarViewModel extends ChangeNotifier {
     try {
       final jsonResponse = await _aiService.checkGrammar(trimmed);
       _result = GrammarResult.fromJson(jsonResponse);
-
-      if (_result != null) {
-        await _firebaseService.saveGrammarResult(userId, _result!);
-      }
 
       _isAnalyzing = false;
       notifyListeners();
@@ -132,32 +128,38 @@ class GrammarViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void applySuggestion(GrammarError error) {
-    if (_currentText.contains(error.original)) {
+  Future<void> applySuggestion(GrammarError error) async {
+    if (_currentText.contains(error.original) && _result != null) {
       _currentText = _currentText.replaceAll(error.original, error.suggestion);
 
       _result = GrammarResult(
-        score: _result!.score + 5,
+        score: _result!.score,
         errors: _result!.errors.where((e) => e != error).toList(),
         betterVersion: _result!.betterVersion,
       );
 
-      _firebaseService.saveGrammarResult(userId, _result!);
+      await _firebaseService.saveGrammarResult(userId, _result!);
       notifyListeners();
     }
   }
 
-  void applyAllSuggestions() {
+  Future<void> applyAllSuggestions() async {
     if (_result != null) {
       _currentText = _result!.betterVersion;
       _result = GrammarResult(
-        score: 100,
+        score: _result!.score,
         errors: [],
         betterVersion: _result!.betterVersion,
       );
 
-      _firebaseService.saveGrammarResult(userId, _result!);
+      await _firebaseService.saveGrammarResult(userId, _result!);
       notifyListeners();
+    }
+  }
+
+  Future<void> saveGrammarResultToFirebase() async {
+    if (_result != null) {
+      await _firebaseService.saveGrammarResult(userId, _result!);
     }
   }
 }

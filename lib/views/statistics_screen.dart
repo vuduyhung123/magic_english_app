@@ -1,16 +1,33 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
+import '../view_models/statistic_view_model.dart';
+
 class  StatisticScreen extends StatefulWidget {
-  const StatisticScreen({super.key});
+  final StatisticsViewModel viewModel;
+  const StatisticScreen({super.key, required this.viewModel});
 
   @override
   State<StatisticScreen> createState() => _StatisticScreenState();
+  
 }
 
 class _StatisticScreenState extends State<StatisticScreen> {
   @override
+  void initState() {
+    super.initState();
+    widget.viewModel.loadStats();
+  }
+  
+  @override
   Widget build(BuildContext context) {
+    final stats = widget.viewModel.stats;
+
+    if (stats == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
     return Scaffold(
       body: SingleChildScrollView(
         child: Container(
@@ -155,7 +172,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                             left: 97.95,
                                             top: -1.73,
                                             child: Text(
-                                              '12 Days',
+                                              '${widget.viewModel.stats?.streak ?? 0} Days',
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
                                                 color: Colors.white,
@@ -278,18 +295,12 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                             height: 199.98,
                                             child: Stack(
                                               children: [
-                                                Positioned(
-                                                  left: 0,
-                                                  top: 0,
-                                                  child: Container(
-                                                    width: 269.83,
-                                                    height: 199.87,
-                                                    clipBehavior: Clip.antiAlias,
-                                                    decoration: BoxDecoration(),
-                                                    child: SvgPicture.asset(
-                                                      'assets/icons/chart.svg',
-                                                      fit: BoxFit.contain,
-                                                    ),
+                                                Align(
+                                                  alignment: Alignment.center,
+                                                  child: SizedBox(
+                                                    width: 160,
+                                                    height: 160,
+                                                    child: KindPieChart(data: stats.posCounts),
                                                   ),
                                                 ),
                                               ],
@@ -337,7 +348,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                                 child: SizedBox(
                                                                   width: 79,
                                                                   child: Text(
-                                                                    'Nouns: 42',
+                                                                    'Nouns: ${widget.viewModel.stats?.posCounts['Noun'] ?? 0}',
                                                                     style: TextStyle(
                                                                       color: const Color(0xFF354152),
                                                                       fontSize: 16,
@@ -388,7 +399,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                                 child: SizedBox(
                                                                   width: 73,
                                                                   child: Text(
-                                                                    'Verbs: 28',
+                                                                    'Verbs: ${widget.viewModel.stats?.posCounts['Verb'] ?? 0}',
                                                                     style: TextStyle(
                                                                       color: const Color(0xFF354152),
                                                                       fontSize: 16,
@@ -431,7 +442,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                               const SizedBox(width: 7),
                                                               Expanded(
                                                                 child: Text(
-                                                                  'Adjectives: 35',
+                                                                  'Adjectives: ${widget.viewModel.stats?.posCounts['Adjective'] ?? 0}',
                                                                   maxLines: 1,
                                                                   overflow: TextOverflow.ellipsis,
                                                                   style: const TextStyle(
@@ -483,7 +494,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                                 child: SizedBox(
                                                                   width: 89,
                                                                   child: Text(
-                                                                    'Adverbs: 15',
+                                                                    'Adverbs: ${widget.viewModel.stats?.posCounts['Adverb'] ?? 0}',
                                                                     style: TextStyle(
                                                                       color: const Color(0xFF354152),
                                                                       fontSize: 16,
@@ -534,7 +545,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                                 child: SizedBox(
                                                                   width: 114,
                                                                   child: Text(
-                                                                    'Others: 10',
+                                                                    'Others: ${widget.viewModel.stats?.posCounts['Other'] ?? 0}',
                                                                     style: TextStyle(
                                                                       color: const Color(0xFF354152),
                                                                       fontSize: 16,
@@ -614,7 +625,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                           left: 0,
                                           top: -1.73,
                                           child: Text(
-                                            'CEFR Proficiency',
+                                            'CEFR Proficiency (%)',
                                             style: TextStyle(
                                               color: const Color(0xFF101727),
                                               fontSize: 16,
@@ -742,10 +753,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                             height: 199.87,
                                                             clipBehavior: Clip.antiAlias,
                                                             decoration: BoxDecoration(),
-                                                            child: SvgPicture.asset(
-                                                              'assets/icons/column_chart.svg',
-                                                              fit: BoxFit.contain,
-                                                            ),
+                                                            child: CefrBarChart(viewModel: widget.viewModel)
                                                           ),
                                                         ),
                                                       ],
@@ -840,7 +848,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                           child: SizedBox(
                                             width: 189,
                                             child: Text(
-                                              'Total: 208 words learned',
+                                              'Total: ${widget.viewModel.stats?.totalWords ?? 0} words learned',
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
                                                 color: const Color(0xFF495565),
@@ -1964,11 +1972,12 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                             height: 23.98,
                                             child: Stack(
                                               children: [
-                                                Positioned(
-                                                  left: 15.25,
-                                                  top: -1.73,
+                                                Container(
+                                                  width: double.infinity,
+                                                  height: 23.98,
+                                                  alignment: Alignment.center,
                                                   child: Text(
-                                                    '208',
+                                                    '${widget.viewModel.stats?.totalWords ?? 0}',
                                                     textAlign: TextAlign.center,
                                                     style: TextStyle(
                                                       color: const Color(0xFF10B981),
@@ -2045,11 +2054,12 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                             height: 23.98,
                                             child: Stack(
                                               children: [
-                                                Positioned(
-                                                  left: 20,
-                                                  top: -1.73,
+                                                Container(
+                                                  width: double.infinity,
+                                                  height: 23.98,
+                                                  alignment: Alignment.center,
                                                   child: Text(
-                                                    '12',
+                                                    '${widget.viewModel.stats?.streak ?? 0}',
                                                     textAlign: TextAlign.center,
                                                     style: TextStyle(
                                                       color: const Color(0xFF0B5394),
@@ -2126,11 +2136,12 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                             height: 23.98,
                                             child: Stack(
                                               children: [
-                                                Positioned(
-                                                  left: 16.36,
-                                                  top: -1.73,
+                                                Container(
+                                                  width: double.infinity,
+                                                  height: 23.98,
+                                                  alignment: Alignment.center,
                                                   child: Text(
-                                                    '89%',
+                                                    '${(widget.viewModel.stats?.accuracy ?? 0).round()}%',
                                                     textAlign: TextAlign.center,
                                                     style: TextStyle(
                                                       color: const Color(0xFFFF6B35),
@@ -2188,4 +2199,108 @@ class _StatisticScreenState extends State<StatisticScreen> {
       ),
     );
   }
+}
+class CefrBarChart extends StatelessWidget {
+  final StatisticsViewModel viewModel;
+  const CefrBarChart({super.key, required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
+    final data = viewModel.stats?.cefrCounts ?? {};
+    if (data.isEmpty) {
+      return const Center(child: Text("No data"));
+    }
+
+    final maxValue = data.values.reduce((a, b) => a > b ? a : b).toDouble();
+    
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: data.entries.map((e) {
+        final double height = maxValue == 0 ? 0 : (e.value / maxValue) * 160;
+        return Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: 24,
+                height: height,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0B5394),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(e.key, style: const TextStyle(fontSize: 10)),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class KindPieChart extends StatelessWidget {
+  final Map<String, int> data;
+
+  const KindPieChart({super.key, required this.data});
+
+  static const _colors = {
+    'Noun': Color(0xFF6366F1),
+    'Verb': Color(0xFF8B5CF6),
+    'Adjective': Color(0xFFEC4899),
+    'Adverb': Color(0xFFF59E0B),
+    'Other': Color(0xFF10B981),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _KindPiePainter(data),
+      size: Size.infinite,
+    );
+  }
+}
+
+class _KindPiePainter extends CustomPainter {
+  final Map<String, int> data;
+
+  _KindPiePainter(this.data);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final total = data.values.fold<int>(0, (a, b) => a + b);
+    if (total == 0) return;
+
+    final center = size.center(Offset.zero);
+    final radius = min(size.width, size.height) / 2;
+    final innerRadius = radius * 0.55;
+
+    var startAngle = -pi / 2;
+
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = radius - innerRadius;
+
+    for (final entry in data.entries) {
+      final value = entry.value;
+      if (value == 0) continue;
+
+      final sweep = (value / total) * 2 * pi;
+      paint.color = KindPieChart._colors[entry.key] ?? Colors.grey;
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: (radius + innerRadius) / 2),
+        startAngle,
+        sweep,
+        false,
+        paint,
+      );
+
+      startAngle += sweep;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

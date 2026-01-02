@@ -49,12 +49,27 @@ class FirebaseService {
   }
 
   Future<void> saveGrammarResult(String userId, GrammarResult result) async {
-    await _users.doc(userId).collection('grammar').doc('latest').set(result.toJson());
-  }
+    final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
 
+    await _users
+        .doc(userId)
+        .collection('grammar')
+        .doc(timestamp)
+        .set({
+          ...result.toJson(),
+          'timestamp': timestamp,
+        });
+  }
   Future<GrammarResult?> getGrammarResult(String userId) async {
-    final doc = await _users.doc(userId).collection('grammar').doc('latest').get();
-    if (!doc.exists) return null;
-    return GrammarResult.fromJson(doc.data()!);
+    final snap = await _users
+        .doc(userId)
+        .collection('grammar')
+        .orderBy('timestamp', descending: true)
+        .limit(1)
+        .get();
+
+    if (snap.docs.isEmpty) return null;
+    final data = snap.docs.first.data();
+    return GrammarResult.fromJson(data);
   }
 }

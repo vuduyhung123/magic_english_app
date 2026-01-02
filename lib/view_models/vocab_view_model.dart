@@ -182,4 +182,12 @@ class VocabViewModel extends ChangeNotifier {
     _searchQuery = '';
     notifyListeners();
   }
+
+  Map<String, int> get statByType {
+    final map = <String, int>{};
+    for (final w in _allWords) {
+      map[w.kind] = (map[w.kind] ?? 0) + 1;
+    }
+    return map;
+  }
 }
