@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:magic_english_app/view_models/add_vocab_view_model.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -7,6 +8,7 @@ import 'firebase_options.dart';
 import 'models/app_user.dart';
 import 'services/ai_service.dart';
 import 'services/auth_service.dart';
+import 'services/firebase_service.dart';
 import 'view_models/vocab_view_model.dart';
 import 'view_models/grammar_view_model.dart';
 import 'views/welcome_screen.dart';
@@ -17,19 +19,74 @@ import 'views/statistics_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await dotenv.load(fileName: ".env");
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+  runApp(
+    MultiProvider(
+      providers: [
+        Provider<AuthService>(
+          create: (_) => AuthService(),
+          lazy: false,
+        ),
+        Provider<FirebaseService>(create: (_) => FirebaseService()),
+        Provider<AIService>(create: (_) {
+          final useOllama = dotenv.env['USE_OLLAMA']?.toLowerCase() == 'true';
+          final apiKey = useOllama
+              ? dotenv.env['OLLAMA_API_KEY']
+              : dotenv.env['ANTHROPIC_API_KEY'];
+          return AIServiceFactory.create(
+            useOllama: useOllama,
+            apiKey: apiKey,
+            baseUrl: dotenv.env['OLLAMA_BASE_URL'],
+            model: dotenv.env['OLLAMA_MODEL'],
+          );
+        }),
+        ChangeNotifierProvider<VocabViewModel>(
+          create: (context) {
+            final aiService = context.read<AIService>();
+            final firebaseService = context.read<FirebaseService>();
+            final authService = context.read<AuthService>();
+            final userId = authService.currentUser?.uid ?? 'guest';
+
+            return VocabViewModel(
+              aiService: aiService,
+              firebaseService: firebaseService,
+              userId: userId,
+            );
+          },
+        ),
+        ChangeNotifierProvider<GrammarViewModel>(
+          create: (context) {
+            final aiService = context.read<AIService>();
+            final firebaseService = context.read<FirebaseService>();
+            final authService = context.read<AuthService>();
+            final userId = authService.currentUser?.uid ?? 'guest';
+
+            return GrammarViewModel(
+              aiService: aiService,
+              firebaseService: firebaseService,
+              userId: userId,
+            );
+          },
+        ),
+        ChangeNotifierProvider<AddVocabViewModel>(
+          create: (context) {
+            final aiService = context.read<AIService>();
+            final firebaseService = context.read<FirebaseService>();
+            final authService = context.read<AuthService>();
+            final userId = authService.currentUser?.uid ?? 'guest';
+            return AddVocabViewModel(
+              aiService: aiService,
+              firebaseService: firebaseService,
+              userId: userId,
+            );
+          },
+        ),
+      ],
+      child: const MyApp(),
+    ),
   );
-
-  try {
-    await dotenv.load(fileName: ".env");
-    debugPrint('✅ .env file loaded successfully');
-  } catch (e) {
-    debugPrint('⚠️ .env file not found, using defaults: $e');
-  }
-
-  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -37,62 +94,22 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final aiService = _createAIService();
-
-    return MultiProvider(
-      providers: [
-        Provider<AIService>.value(value: aiService),
-        Provider<AuthService>(create: (_) => AuthService()),
-        ChangeNotifierProvider(
-          create: (context) => VocabViewModel(aiService: context.read<AIService>()),
-        ),
-        ChangeNotifierProvider(
-          create: (context) => GrammarViewModel(
-            aiService: context.read<AIService>(),
-          ),
-        ),
-      ],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Magic English',
-        theme: ThemeData(
-          brightness: Brightness.light,
-          primaryColor: const Color(0xFF0B5394),
-          scaffoldBackgroundColor: Colors.white,
-          useMaterial3: true,
-        ),
-        home: const WelcomeScreen(),
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Magic English',
+      theme: ThemeData(
+        brightness: Brightness.light,
+        primaryColor: const Color(0xFF0B5394),
+        scaffoldBackgroundColor: Colors.white,
+        useMaterial3: true,
       ),
-    );
-  }
-
-  AIService _createAIService() {
-    final useOllama = dotenv.env['USE_OLLAMA']?.toLowerCase() == 'true';
-    final apiKey = useOllama
-        ? dotenv.env['OLLAMA_API_KEY']
-        : dotenv.env['ANTHROPIC_API_KEY'];
-
-    debugPrint('🤖 Initializing AI Service (Ollama: $useOllama)...');
-
-    return AIServiceFactory.create(
-      useOllama: useOllama,
-      apiKey: apiKey,
-      baseUrl: dotenv.env['OLLAMA_BASE_URL'],
-      model: dotenv.env['OLLAMA_MODEL'],
+      home: const WelcomeScreen(),
     );
   }
 }
-
-// NÂNG CẤP MainScreen để tải dữ liệu người dùng
 class MainScreen extends StatefulWidget {
-  final VocabViewModel viewModel;
   final bool isGuest;
-
-  const MainScreen({
-    super.key,
-    required this.viewModel,
-    this.isGuest = false,
-  });
+  const MainScreen({super.key, this.isGuest = false, required VocabViewModel viewModel});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -103,10 +120,20 @@ class _MainScreenState extends State<MainScreen> {
   AppUser? _appUser;
   bool _isLoading = true;
 
+  late VocabViewModel _vocabViewModel;
+  late GrammarViewModel _grammarViewModel;
+
   @override
   void initState() {
     super.initState();
+    _initViewModels();
     _loadUserData();
+  }
+
+  void _initViewModels() {
+    _vocabViewModel = context.read<VocabViewModel>();
+    _grammarViewModel = context.read<GrammarViewModel>();
+    _vocabViewModel.loadWords();
   }
 
   Future<void> _loadUserData() async {
@@ -117,7 +144,6 @@ class _MainScreenState extends State<MainScreen> {
 
     final authService = context.read<AuthService>();
     final firebaseUser = authService.currentUser;
-
     if (firebaseUser != null) {
       final user = await authService.getAppUser(firebaseUser.uid);
       if (mounted) {
@@ -131,24 +157,16 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-  }
+  void _onTabTapped(int index) => setState(() => _currentIndex = index);
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
+    if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
-    final List<Widget> screens = [
+    final screens = [
       HomeScreen(isGuest: widget.isGuest, onNavigateToTab: _onTabTapped, user: _appUser),
-      VocabScreen(viewModel: widget.viewModel),
-      const GrammarScreen(),
+      VocabScreen(viewModel: _vocabViewModel),
+      GrammarScreen(viewModel: _grammarViewModel),
       const StatisticScreen(),
     ];
 

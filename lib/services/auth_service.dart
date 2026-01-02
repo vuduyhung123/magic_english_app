@@ -12,38 +12,38 @@ class AuthService {
 
   User? get currentUser => _auth.currentUser;
 
-  Future<User?> signInWithGoogle() async {
+  /// Sign in với Google và lưu user vào Firestore nếu chưa có
+  Future<AppUser?> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        return null; // User cancelled the sign-in
-      }
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return null; // User cancel
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final AuthCredential credential = GoogleAuthProvider.credential(
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      final UserCredential userCredential = await _auth.signInWithCredential(credential);
-      final User? user = userCredential.user;
+      final userCredential = await _auth.signInWithCredential(credential);
+      final firebaseUser = userCredential.user;
+      if (firebaseUser == null) return null;
 
-      if (user != null) {
-        await _updateUserData(user);
-      }
-
-      return user;
+      // Update Firestore
+      final appUser = await _updateUserData(firebaseUser);
+      return appUser;
     } catch (e) {
-      print("Error during Google Sign-In: $e");
+      print("Google SignIn failed: $e");
       return null;
     }
   }
 
+  /// Sign out
   Future<void> signOut() async {
     await _googleSignIn.signOut();
     await _auth.signOut();
   }
 
+  /// Lấy AppUser từ Firestore
   Future<AppUser?> getAppUser(String uid) async {
     try {
       final doc = await _firestore.collection('users').doc(uid).get();
@@ -57,6 +57,7 @@ class AuthService {
     }
   }
 
+  /// Cập nhật tên hiển thị
   Future<void> updateDisplayName(String newName) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("No authenticated user found.");
@@ -64,38 +65,53 @@ class AuthService {
 
     try {
       await user.updateDisplayName(newName);
-      final userRef = _firestore.collection('users').doc(user.uid);
-      await userRef.update({'displayName': newName});
+      await _firestore.collection('users').doc(user.uid).update({
+        'displayName': newName,
+      });
     } catch (e) {
-      throw Exception("Failed to update profile. Please try again.");
+      throw Exception("Failed to update profile: $e");
     }
   }
 
+  /// Cập nhật cài đặt thông báo
   Future<void> updateNotificationSettings(Map<String, bool> settings) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("No authenticated user found.");
 
     try {
-      final userRef = _firestore.collection('users').doc(user.uid);
-      await userRef.update(settings.map((key, value) => MapEntry(key, value)));
+      await _firestore.collection('users').doc(user.uid).update(settings);
     } catch (e) {
-      throw Exception("Failed to save settings. Please try again.");
+      throw Exception("Failed to save settings: $e");
     }
   }
 
-  Future<void> _updateUserData(User user) async {
+  /// Update hoặc tạo mới user trên Firestore
+  Future<AppUser> _updateUserData(User user) async {
     final userRef = _firestore.collection('users').doc(user.uid);
     final doc = await userRef.get();
 
+    final now = Timestamp.now();
+
     if (!doc.exists) {
-      final newUser = AppUser.fromFirebase(user);
+      // Nếu chưa có user, tạo mới
+      final newUser = AppUser(
+        id: user.uid,
+        displayName: user.displayName ?? "No Name",
+        email: user.email ?? "",
+        photoUrl: user.photoURL,
+        lastLogin: now, 
+        creationTime: now,
+      );
       await userRef.set(newUser.toFirestore());
+      return newUser;
     } else {
+      // Nếu đã có user, chỉ update lastLogin
       await userRef.update({
-        'lastLogin': Timestamp.now(),
-        'displayName': user.displayName ?? '',
-        'photoUrl': user.photoURL,
+        'lastLogin': now,
+        'displayName': user.displayName ?? doc['displayName'],
+        'photoUrl': user.photoURL ?? doc['photoUrl'],
       });
+      return AppUser.fromFirestore(doc);
     }
   }
 }

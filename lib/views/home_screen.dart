@@ -5,18 +5,17 @@ import 'account_review_screen.dart';
 class HomeScreen extends StatelessWidget {
   final Function(int) onNavigateToTab;
   final bool isGuest;
-  final AppUser? user; // Thêm tham số để nhận dữ liệu người dùng
+  final AppUser? user;
 
   const HomeScreen({
     super.key,
     required this.onNavigateToTab,
     this.isGuest = false,
-    this.user, // Constructor nhận AppUser
+    this.user,
   });
 
   @override
   Widget build(BuildContext context) {
-    // KHÔI PHỤC LẠI TOÀN BỘ GIAO DIỆN
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: SingleChildScrollView(
@@ -62,7 +61,6 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    // TÍCH HỢP LOGIC HIỂN THỊ THÔNG TIN THẬT
     final displayName = isGuest ? "Guest Learner" : (user?.displayName ?? "...");
     final photoUrl = user?.photoUrl;
 
@@ -82,16 +80,16 @@ class HomeScreen extends StatelessWidget {
                 children: [
                   const Text("Welcome back!", style: TextStyle(color: Colors.white70, fontSize: 16)),
                   const SizedBox(height: 4),
-                  // Hiển thị tên thật
                   Text(displayName, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                 ],
               ),
               GestureDetector(
                 onTap: () {
-                  // Truyền AppUser sang màn hình review
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => AccountReviewScreen(isGuest: isGuest, user: user)));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => AccountReviewScreen(isGuest: isGuest, user: user)),
+                  );
                 },
-                // Hiển thị ảnh đại diện thật
                 child: CircleAvatar(
                   radius: 24,
                   backgroundColor: Colors.white24,
@@ -118,7 +116,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // CÁC HÀM BUILD GIAO DIỆN KHÁC ĐƯỢC GIỮ NGUYÊN
   Widget _buildStatCard({required Color color, required Color iconColor, required IconData icon, required String title, required String value, required String subtitle}) {
     return Container(
       padding: const EdgeInsets.all(20),

@@ -16,7 +16,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Điều hướng vào trang chủ
   void _navigateToHome(BuildContext context, {bool isGuest = false}) {
-    // Lấy viewModel từ Provider để truyền vào MainScreen, giữ nguyên luồng cũ
     final vocabViewModel = Provider.of<VocabViewModel>(context, listen: false);
 
     Navigator.pushAndRemoveUntil(

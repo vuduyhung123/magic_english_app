@@ -1,19 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/vocab_word.dart';
+import '../services/auth_service.dart';
+import '../services/ai_service.dart';
+import '../services/firebase_service.dart';
 import '../view_models/vocab_view_model.dart';
 import '../view_models/add_vocab_view_model.dart';
-import '../services/ai_service.dart';
-import 'add_vocab_screen.dart'; 
+import 'add_vocab_screen.dart';
 import 'vocab_topic_screen.dart';
 
-class VocabScreen extends StatelessWidget {
+class VocabScreen extends StatefulWidget {
   final VocabViewModel viewModel;
 
   const VocabScreen({super.key, required this.viewModel});
 
   @override
+  State<VocabScreen> createState() => _VocabScreenState();
+}
+class _VocabScreenState extends State<VocabScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => widget.viewModel.loadWords());
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final viewModel = widget.viewModel;
     return ListenableBuilder(
       listenable: viewModel,
       builder: (context, child) {
@@ -117,8 +130,8 @@ class VocabScreen extends StatelessWidget {
               ],
             ),
           ),
-          
-          // --- Floating Action Button với AI Service Injection ---
+
+          // --- Floating Action Button ---
           floatingActionButton: SizedBox(
             width: 56,
             height: 56,
@@ -128,47 +141,46 @@ class VocabScreen extends StatelessWidget {
               shape: const CircleBorder(),
               child: const Icon(Icons.add, color: Colors.white, size: 28),
               onPressed: () {
-                // ✨ BƯỚC 6: Inject AIService vào AddVocabViewModel
-                final aiService = Provider.of<AIService>(context, listen: false);
-                
+                final currentUser = context.read<AuthService>().currentUser;
+                if (currentUser == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("You must log in first!")),
+                  );
+                  return;
+                }
+
+                final userId = currentUser.uid;
+                final aiService = context.read<AIService>();
+                final firebaseService = context.read<FirebaseService>();
+
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => ChangeNotifierProvider(
-                      // Tạo AddVocabViewModel với AIService dependency
-                      create: (_) => AddVocabViewModel(aiService: aiService),
+                    builder: (routeContext) => ChangeNotifierProvider(
+                      create: (_) => AddVocabViewModel(
+                        aiService: aiService,
+                        firebaseService: firebaseService,
+                        userId: userId,
+                      ),
                       child: AddVocabScreen(
-                        onClose: () => Navigator.pop(context),
-                        onSave: (newItem) {
-                          // Mapping dữ liệu từ TempVocabData -> VocabWord
-                          final newWord = VocabWord(
-                            id: DateTime.now().millisecondsSinceEpoch,
-                            word: newItem.word,
-                            phonetic: newItem.pronunciation, // Map pronunciation -> phonetic
-                            meaning: newItem.meaning,
-                            type: newItem.type,
-                            cefrLevel: newItem.cefrLevel,
-                            topic: newItem.topic,
-                            isFavorite: false,
-                          );
-                          
-                          // Thêm vào danh sách
-                          viewModel.addWord(newWord);
-                          
-                          // Hiển thị thông báo thành công
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('✨ Added "${newItem.word}" successfully!'),
-                              backgroundColor: Colors.green,
-                              behavior: SnackBarBehavior.floating,
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-                        },
+                        onClose: () => Navigator.pop(routeContext),
                       ),
                     ),
                   ),
-                );
+                ).then((_) async {
+                  await viewModel.loadWords();
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('✨ Added successfully!'),
+                        backgroundColor: Colors.green,
+                        behavior: SnackBarBehavior.floating,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                });
               },
             ),
           ),
@@ -177,8 +189,9 @@ class VocabScreen extends StatelessWidget {
     );
   }
 
-  // --- Widget Card Giao diện đẹp ---
+  // --- Word Card ---
   Widget _buildWordCard(VocabWord word, BuildContext context) {
+    final viewModel = widget.viewModel;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
@@ -197,7 +210,6 @@ class VocabScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Card: Word + Speaker + Actions
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -210,15 +222,11 @@ class VocabScreen extends StatelessWidget {
                         Text(
                           word.word,
                           style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
+                              fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
                         ),
                         const SizedBox(width: 8),
                         InkWell(
-                          onTap: () { 
-                            // TODO: Implement TTS (Text-to-Speech)
+                          onTap: () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('🔊 TTS feature coming soon!'),
@@ -236,7 +244,7 @@ class VocabScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      word.phonetic,
+                      word.phonetics,
                       style: TextStyle(
                         fontFamily: 'Arial',
                         color: Colors.grey.shade500,
@@ -246,7 +254,6 @@ class VocabScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              // Action Buttons
               Row(
                 children: [
                   _buildActionButton(
@@ -261,7 +268,6 @@ class VocabScreen extends StatelessWidget {
                     color: const Color(0xFFEF4444),
                     bgColor: const Color(0xFFFEE2E2),
                     onTap: () {
-                      // Confirm delete dialog
                       showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
@@ -273,16 +279,21 @@ class VocabScreen extends StatelessWidget {
                               child: const Text('Cancel'),
                             ),
                             ElevatedButton(
-                              onPressed: () {
-                                viewModel.deleteWord(word.id);
-                                Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Deleted "${word.word}"')),
-                                );
+                              onPressed: () async {
+                                final success = await viewModel.deleteWord(word.id);
+                                if (context.mounted) {
+                                      Navigator.pop(context);
+                                if (!success && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('❌ Xóa thất bại'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
                               },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                              ),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                               child: const Text('Delete'),
                             ),
                           ],
@@ -294,71 +305,18 @@ class VocabScreen extends StatelessWidget {
               )
             ],
           ),
-          
           const SizedBox(height: 16),
-          
-          // Nghĩa
-          Text(
-            word.meaning,
-            style: const TextStyle(
-              color: Colors.black87,
-              fontSize: 16,
-              height: 1.4,
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Tags Area
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              if (word.topic.isNotEmpty) 
-                _buildTag(word.topic, const Color(0xFF0B5394).withOpacity(0.1), const Color(0xFF0B5394)),
-              
-              _buildTag(word.type, _getBgColorByType(word.type), _getTextColorByType(word.type)),
-              
-              _buildTag(word.cefrLevel, _getBgColorByCefr(word.cefrLevel), _getTextColorByCefr(word.cefrLevel)),
-              
-              // AI Context Tag
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFFBEB),
-                  border: Border.all(color: const Color(0xFFFDE68A)),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(Icons.auto_awesome, size: 14, color: Color(0xFFD97706)),
-                    SizedBox(width: 4),
-                    Text(
-                      "AI Context",
-                      style: TextStyle(
-                        color: Color(0xFFB45309),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            ],
-          )
+          Text(word.meaning, style: const TextStyle(color: Colors.black87, fontSize: 16, height: 1.4)),
         ],
       ),
     );
   }
 
-  // --- Small Components ---
-
   Widget _buildActionButton({
-    required IconData icon, 
-    required Color color, 
-    required Color bgColor, 
-    required VoidCallback onTap
+    required IconData icon,
+    required Color color,
+    required Color bgColor,
+    required VoidCallback onTap,
   }) {
     return Material(
       color: bgColor,
@@ -374,71 +332,5 @@ class VocabScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Widget _buildTag(String text, Color bgColor, Color textColor) {
-    if (text.isEmpty) return const SizedBox.shrink();
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: bgColor.withOpacity(0.1) == bgColor 
-            ? textColor.withOpacity(0.2) 
-            : Colors.transparent
-        ),
-      ),
-      child: Text(
-        text.isNotEmpty ? text[0].toUpperCase() + text.substring(1) : "",
-        style: TextStyle(color: textColor, fontSize: 12, fontWeight: FontWeight.w600),
-      ),
-    );
-  }
-
-  // --- Helper Functions for Colors ---
-  
-  Color _getBgColorByType(String type) {
-    switch (type.toLowerCase()) {
-      case 'noun': return Colors.blue.shade50;
-      case 'verb': return Colors.green.shade50;
-      case 'adjective': return Colors.purple.shade50;
-      case 'adverb': return Colors.orange.shade50;
-      default: return Colors.grey.shade100;
-    }
-  }
-
-  Color _getTextColorByType(String type) {
-    switch (type.toLowerCase()) {
-      case 'noun': return Colors.blue.shade700;
-      case 'verb': return Colors.green.shade700;
-      case 'adjective': return Colors.purple.shade700;
-      case 'adverb': return Colors.orange.shade700;
-      default: return Colors.grey.shade700;
-    }
-  }
-
-  Color _getBgColorByCefr(String level) {
-    switch (level.toUpperCase()) {
-      case 'A1': return Colors.tealAccent.shade100.withOpacity(0.3);
-      case 'A2': return Colors.teal.shade100;
-      case 'B1': return Colors.cyan.shade100;
-      case 'B2': return Colors.indigo.shade100;
-      case 'C1': return Colors.deepPurple.shade100;
-      case 'C2': return Colors.pinkAccent.shade100.withOpacity(0.3);
-      default: return Colors.grey.shade100;
-    }
-  }
-
-  Color _getTextColorByCefr(String level) {
-    switch (level.toUpperCase()) {
-      case 'A1': return Colors.teal.shade700;
-      case 'A2': return Colors.teal.shade800;
-      case 'B1': return Colors.cyan.shade800;
-      case 'B2': return Colors.indigo.shade800;
-      case 'C1': return Colors.deepPurple.shade800;
-      case 'C2': return Colors.pink.shade800;
-      default: return Colors.grey.shade700;
-    }
   }
 }

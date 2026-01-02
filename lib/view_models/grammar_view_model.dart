@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/ai_service.dart';
+import '../services/firebase_service.dart';
 
 class GrammarError {
   final String type;
@@ -22,6 +23,13 @@ class GrammarError {
       suggestion: json['suggestion'] ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'type': type,
+        'message': message,
+        'original': original,
+        'suggestion': suggestion,
+      };
 }
 
 class GrammarResult {
@@ -46,54 +54,43 @@ class GrammarResult {
     );
   }
 
-  // Helper methods
-  int get errorCount => errors.where((e) => 
-    e.type == 'grammar' || e.type == 'spelling').length;
-  
-  int get suggestionCount => errors.where((e) => 
-    e.type == 'style' || e.type == 'punctuation').length;
-
-  String get scoreLabel {
-    if (score >= 90) return 'Excellent! 🎉';
-    if (score >= 70) return 'Good 👍';
-    if (score >= 50) return 'Fair 📝';
-    return 'Needs Work 💪';
-  }
-
-  Color get scoreColor {
-    if (score >= 90) return const Color(0xFF10B981);
-    if (score >= 70) return const Color(0xFFF59E0B);
-    return const Color(0xFFEF4444);
-  }
+  Map<String, dynamic> toJson() => {
+        'score': score,
+        'betterVersion': betterVersion,
+        'errors': errors.map((e) => e.toJson()).toList(),
+      };
 }
 
 class GrammarViewModel extends ChangeNotifier {
   final AIService _aiService;
+  final FirebaseService _firebaseService;
+  final String userId;
+
+  GrammarViewModel({
+    required AIService aiService,
+    required FirebaseService firebaseService,
+    required this.userId,
+  })  : _aiService = aiService,
+        _firebaseService = firebaseService;
 
   bool _isAnalyzing = false;
   GrammarResult? _result;
   String? _error;
   String _currentText = '';
 
-  GrammarViewModel({required AIService aiService}) : _aiService = aiService;
-
-  // Getters
   bool get isAnalyzing => _isAnalyzing;
   GrammarResult? get result => _result;
   String? get error => _error;
   String get currentText => _currentText;
   bool get hasResult => _result != null;
 
-  /// Phân tích văn bản
   Future<void> analyzeText(String text) async {
     final trimmed = text.trim();
-
     if (trimmed.isEmpty) {
       _error = 'Vui lòng nhập văn bản cần kiểm tra';
       notifyListeners();
       return;
     }
-
     if (trimmed.length < 10) {
       _error = 'Văn bản quá ngắn (tối thiểu 10 ký tự)';
       notifyListeners();
@@ -109,7 +106,11 @@ class GrammarViewModel extends ChangeNotifier {
     try {
       final jsonResponse = await _aiService.checkGrammar(trimmed);
       _result = GrammarResult.fromJson(jsonResponse);
-      
+
+      if (_result != null) {
+        await _firebaseService.saveGrammarResult(userId, _result!);
+      }
+
       _isAnalyzing = false;
       notifyListeners();
     } catch (e) {
@@ -119,7 +120,6 @@ class GrammarViewModel extends ChangeNotifier {
     }
   }
 
-  /// Reset kết quả
   void reset() {
     _result = null;
     _error = null;
@@ -127,29 +127,26 @@ class GrammarViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Clear error
   void clearError() {
     _error = null;
     notifyListeners();
   }
 
-  /// Apply một suggestion cụ thể
   void applySuggestion(GrammarError error) {
     if (_currentText.contains(error.original)) {
       _currentText = _currentText.replaceAll(error.original, error.suggestion);
-      
-      // Xóa error này khỏi danh sách
+
       _result = GrammarResult(
-        score: _result!.score + 5, // Tăng điểm
+        score: _result!.score + 5,
         errors: _result!.errors.where((e) => e != error).toList(),
         betterVersion: _result!.betterVersion,
       );
-      
+
+      _firebaseService.saveGrammarResult(userId, _result!);
       notifyListeners();
     }
   }
 
-  /// Apply tất cả suggestions
   void applyAllSuggestions() {
     if (_result != null) {
       _currentText = _result!.betterVersion;
@@ -158,6 +155,8 @@ class GrammarViewModel extends ChangeNotifier {
         errors: [],
         betterVersion: _result!.betterVersion,
       );
+
+      _firebaseService.saveGrammarResult(userId, _result!);
       notifyListeners();
     }
   }

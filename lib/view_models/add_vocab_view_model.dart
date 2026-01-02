@@ -1,107 +1,81 @@
 import 'package:flutter/material.dart';
+import '../models/vocab_word.dart';
 import '../services/ai_service.dart';
-
-class TempVocabData {
-  final String word;
-  final String pronunciation;
-  final String meaning;
-  final String type;
-  final String cefrLevel;
-  final String topic;
-  final String example;
-
-  TempVocabData({
-    required this.word,
-    required this.pronunciation,
-    required this.meaning,
-    required this.type,
-    required this.cefrLevel,
-    required this.topic,
-    required this.example,
-  });
-
-  factory TempVocabData.fromJson(Map<String, dynamic> json) {
-    return TempVocabData(
-      word: json['word'] ?? '',
-      pronunciation: json['pronunciation'] ?? '',
-      meaning: json['meaning'] ?? '',
-      type: json['type'] ?? 'noun',
-      cefrLevel: json['cefrLevel'] ?? 'B1',
-      topic: json['topic'] ?? 'General',
-      example: json['example'] ?? '',
-    );
-  }
-}
+import '../services/firebase_service.dart';
 
 class AddVocabViewModel extends ChangeNotifier {
   final AIService _aiService;
-  
+  final FirebaseService _firebaseService;
+  final String userId;
+
   bool _isLookingUp = false;
   bool _showSuccess = false;
   String _error = '';
 
-  // Constructor nhận AIService (Dependency Injection)
-  AddVocabViewModel({required AIService aiService}) : _aiService = aiService;
+  AddVocabViewModel({
+    required AIService aiService,
+    required FirebaseService firebaseService,
+    required this.userId,
+  })  : _aiService = aiService,
+        _firebaseService = firebaseService;
 
-  // Getters
   bool get isLookingUp => _isLookingUp;
   bool get showSuccess => _showSuccess;
   String get error => _error;
 
-  /// Lookup từ vựng sử dụng AI
-  Future<TempVocabData?> lookupWord(String input) async {
+  Future<VocabWord?> lookupWord(String input) async {
     final text = input.trim();
-
-    // 1. Validation
     if (text.isEmpty) {
       _error = 'Vui lòng nhập từ vựng';
       notifyListeners();
       return null;
     }
 
-    if (!RegExp(r'^[a-zA-Z\s-]+$').hasMatch(text)) {
-      _error = 'Vui lòng nhập từ tiếng Anh hợp lệ';
-      notifyListeners();
-      return null;
-    }
-
-    // 2. Bắt đầu lookup
     _isLookingUp = true;
     _error = '';
     notifyListeners();
 
     try {
-      // Gọi AI Service
-      final jsonResponse = await _aiService.enrichVocabulary(text);
-      
-      // Parse kết quả
-      final result = TempVocabData.fromJson(jsonResponse);
+      final json = await _aiService.enrichVocabulary(text);
 
-      // 3. Thành công
+      final vocab = VocabWord(
+        id: DateTime.now().millisecondsSinceEpoch,
+        word: json['word'] ?? text,
+        phonetics: json['phonetics'] ?? '',
+        meaning: json['meaning'] ?? '',
+        kind: json['kind'] ?? 'noun',
+        cefrLevel: json['cefrLevel'] ?? 'B1',
+        topic: json['topic'] ?? 'General',
+        isFavorite: false,
+      );
+
       _isLookingUp = false;
       _showSuccess = true;
       notifyListeners();
-
-      return result;
-
+      return vocab;
     } catch (e) {
       _isLookingUp = false;
-      // Provide a more helpful message for common Ollama 404 situation
-      final raw = e.toString().replaceAll('Exception: ', '');
-      if (raw.contains('All tried endpoints returned 404') || raw.contains('404')) {
-        _error = 'Ollama đang chạy nhưng API tạo nội dung chưa được bật hoặc endpoint khác.\n'
-            'Hãy kiểm tra:\n+  • Bạn đã bật HTTP API của Ollama (hoặc dùng Ollama Cloud và thiết lập OLLAMA_API_KEY)?\n'
-            '  • Thử POST tới /generate hoặc /api/generate bằng Postman/curl để xác nhận.\n'
-            'Nếu cần, bạn có thể tạm dùng một provider khác (set USE_OLLAMA=false và dùng Claude/Anthropic).';
-      } else {
-        _error = raw;
-      }
+      _error = e.toString();
       notifyListeners();
       return null;
     }
   }
 
-  /// Reset state
+
+  Future<bool> saveVocab(VocabWord vocab) async {
+    try {
+      await _firebaseService.addVocab(
+        userId: userId,
+        vocab: vocab.toFirestore(),
+      );
+      return true;
+    } catch (e) {
+      _error = 'Lưu từ vựng thất bại: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
   void reset() {
     _isLookingUp = false;
     _showSuccess = false;

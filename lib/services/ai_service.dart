@@ -70,9 +70,9 @@ IMPORTANT: The "meaning" field MUST be in Vietnamese.
 
 {
   "word": "$word",
-  "pronunciation": "/IPA transcription/",
+  "phonetics": "/IPA transcription/",
   "meaning": "Dịch nghĩa tiếng Việt ngắn gọn, súc tích",
-  "type": "Part of speech (noun/verb/adj...)",
+  "kind": "Part of speech (noun/verb/adj...)",
   "cefrLevel": "CEFR Level (A1-C2)",
   "topic": "Relevant topic",
   "example": "A simple example sentence using the word"

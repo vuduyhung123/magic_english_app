@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../view_models/grammar_view_model.dart'; // Đảm bảo import đúng file chứa class GrammarResult
 
 class GrammarScreen extends StatefulWidget {
-  const GrammarScreen({super.key});
+  const GrammarScreen({super.key, required GrammarViewModel viewModel});
 
   @override
   State<GrammarScreen> createState() => _GrammarScreenState();
