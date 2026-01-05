@@ -24,7 +24,6 @@ class AIServiceFactory {
       return OllamaAIService(
         apiKey: apiKey,
         baseUrl: baseUrl ?? 'https://api.groq.com/openai/v1/chat/completions',
-        // SỬA: Cập nhật model mới nhất để tránh lỗi "decommissioned"
         model: model ?? 'llama-3.1-8b-instant',
       );
     } else {
