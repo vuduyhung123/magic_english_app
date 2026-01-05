@@ -307,6 +307,44 @@ class _VocabScreenState extends State<VocabScreen> {
           ),
           const SizedBox(height: 16),
           Text(word.meaning, style: const TextStyle(color: Colors.black87, fontSize: 16, height: 1.4)),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (word.topic.isNotEmpty) 
+                _buildTag(word.topic, const Color(0xFF0B5394).withValues(alpha: 0.1), const Color(0xFF0B5394)),
+              
+              _buildTag(word.kind, _getBgColorByType(word.kind), _getTextColorByType(word.kind)),
+              
+              _buildTag(word.cefrLevel, _getBgColorByCefr(word.cefrLevel), _getTextColorByCefr(word.cefrLevel)),
+              
+              // AI Context Tag
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFBEB),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.auto_awesome, size: 14, color: Color(0xFFD97706)),
+                    SizedBox(width: 4),
+                    Text(
+                      "AI Context",
+                      style: TextStyle(
+                        color: Color(0xFFB45309),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -334,3 +372,68 @@ class _VocabScreenState extends State<VocabScreen> {
     );
   }
 }
+Widget _buildTag(String text, Color bgColor, Color textColor) {
+    if (text.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: bgColor.withValues(alpha: 0.1) == bgColor 
+            ? textColor.withValues(alpha: 0.2) 
+            : Colors.transparent
+        ),
+      ),
+      child: Text(
+        text.isNotEmpty ? text[0].toUpperCase() + text.substring(1) : "",
+        style: TextStyle(color: textColor, fontSize: 12, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  // --- Helper Functions for Colors ---
+  
+  Color _getBgColorByType(String type) {
+    switch (type.toLowerCase()) {
+      case 'noun': return Colors.blue.shade50;
+      case 'verb': return Colors.green.shade50;
+      case 'adjective': return Colors.purple.shade50;
+      case 'adverb': return Colors.orange.shade50;
+      default: return Colors.grey.shade100;
+    }
+  }
+
+  Color _getTextColorByType(String type) {
+    switch (type.toLowerCase()) {
+      case 'noun': return Colors.blue.shade700;
+      case 'verb': return Colors.green.shade700;
+      case 'adjective': return Colors.purple.shade700;
+      case 'adverb': return Colors.orange.shade700;
+      default: return Colors.grey.shade700;
+    }
+  }
+
+  Color _getBgColorByCefr(String level) {
+    switch (level.toUpperCase()) {
+      case 'A1': return Colors.tealAccent.shade100.withValues(alpha: 0.3);
+      case 'A2': return Colors.teal.shade100;
+      case 'B1': return Colors.cyan.shade100;
+      case 'B2': return Colors.indigo.shade100;
+      case 'C1': return Colors.deepPurple.shade100;
+      case 'C2': return Colors.pinkAccent.shade100.withValues(alpha: 0.3);
+      default: return Colors.grey.shade100;
+    }
+  }
+
+  Color _getTextColorByCefr(String level) {
+    switch (level.toUpperCase()) {
+      case 'A1': return Colors.teal.shade700;
+      case 'A2': return Colors.teal.shade800;
+      case 'B1': return Colors.cyan.shade800;
+      case 'B2': return Colors.indigo.shade800;
+      case 'C1': return Colors.deepPurple.shade800;
+      case 'C2': return Colors.pink.shade800;
+      default: return Colors.grey.shade700;
+    }
+  }
