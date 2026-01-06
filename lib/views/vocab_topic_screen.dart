@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
-import '../models/vocab_word.dart'; 
+import 'package:provider/provider.dart';
+import '../models/vocab_word.dart';
 import '../view_models/vocab_view_model.dart';
+import '../view_models/add_vocab_view_model.dart';
+import '../services/ai_service.dart';
+import '../services/firebase_service.dart';
+import '../services/auth_service.dart';
+import 'add_vocab_screen.dart';
 
 class VocabTopicScreen extends StatelessWidget {
   final VocabViewModel viewModel;
@@ -12,17 +18,17 @@ class VocabTopicScreen extends StatelessWidget {
     return ListenableBuilder(
       listenable: viewModel,
       builder: (context, child) {
-        // Nếu chưa chọn category -> Hiện danh sách Topic
+        // Chưa chọn Category -> Hiện danh sách Topic
         if (viewModel.selectedCategoryFilter == null) {
           return _buildCategoryList(context);
         }
-        // Nếu đã chọn -> Hiện chi tiết từ vựng
+        // Đã chọn Category -> Hiện danh sách chi tiết (Custom Header + Search)
         return _buildDetailList(context);
       },
     );
   }
 
-  // --- Màn hình danh sách Category (Giữ nguyên code cũ của bạn) ---
+  // --- Màn hình danh sách Category ---
   Widget _buildCategoryList(BuildContext context) {
     final stats = viewModel.filterStats;
     return Scaffold(
@@ -31,11 +37,8 @@ class VocabTopicScreen extends StatelessWidget {
         children: [
           Container(
             padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).padding.top + 16, 24, 24),
-            decoration: const BoxDecoration(
-              color: Color(0xFF0B5394),
-            ),
+            decoration: const BoxDecoration(color: Color(0xFF0B5394)),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -153,59 +156,155 @@ class VocabTopicScreen extends StatelessWidget {
     );
   }
 
-  // --- Màn hình chi tiết (Đã cập nhật giao diện giống VocabScreen) ---
+  // --- Màn hình chi tiết từ vựng (Custom Header) ---
   Widget _buildDetailList(BuildContext context) {
     final words = viewModel.filteredWords;
+    final categoryName = viewModel.selectedCategoryFilter ?? "Unknow";
+    const primaryBlue = Color(0xFF0B5394);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0B5394),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
           children: [
-            Text(
-              viewModel.selectedCategoryFilter ?? "Category",
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-            Text(
-              "${words.length} words found",
-              style: const TextStyle(fontSize: 12, color: Colors.white70),
-            )
-          ],
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => viewModel.selectCategoryFilter(null),
-        ),
-      ),
-      body: words.isEmpty
-          ? Center(
+            // Header
+            Padding(
+              padding: const EdgeInsets.all(24.0),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.search_off, size: 64, color: Colors.grey.shade300),
-                  const SizedBox(height: 16),
-                  Text("No words found", style: TextStyle(color: Colors.grey.shade500)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Back Button
+                      InkWell(
+                        onTap: () => viewModel.selectCategoryFilter(null),
+                        borderRadius: BorderRadius.circular(50),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.grey.shade100,
+                          ),
+                          child: const Icon(Icons.close, color: Colors.black54, size: 20),
+                        ),
+                      ),
+                      // Add Button
+                      InkWell(
+                        onTap: () => _openAddVocabScreen(context),
+                        borderRadius: BorderRadius.circular(50),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: primaryBlue,
+                            boxShadow: [
+                              BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))
+                            ]
+                          ),
+                          child: const Icon(Icons.add, color: Colors.white, size: 24),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  // Title
+                  Text(
+                    categoryName,
+                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "${words.length} words",
+                    style: TextStyle(fontSize: 16, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 24),
+                  // Search Bar
+                  TextField(
+                    onChanged: (val) => viewModel.setSearchQuery(val),
+                    decoration: InputDecoration(
+                      hintText: "Search words...",
+                      hintStyle: TextStyle(color: Colors.grey.shade400),
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade200)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade200)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: primaryBlue)),
+                    ),
+                  ),
                 ],
               ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(24),
-              itemCount: words.length,
-              itemBuilder: (context, index) {
-                final word = words[index];
-                return _buildWordCard(word, context);
-              },
             ),
+            // List Words
+            Expanded(
+              child: Container(
+                color: Colors.grey.shade50,
+                child: words.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.search_off, size: 64, color: Colors.grey.shade300),
+                          const SizedBox(height: 16),
+                          Text("No words found", style: TextStyle(color: Colors.grey.shade500)),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(24),
+                      itemCount: words.length,
+                      itemBuilder: (context, index) {
+                        final word = words[index];
+                        return _buildWordCard(word, context);
+                      },
+                    ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  // --- Các hàm hỗ trợ vẽ Card (Copy từ VocabScreen) ---
+  // --- Logic mở màn hình thêm từ ---
+  void _openAddVocabScreen(BuildContext context) {
+    final currentUser = context.read<AuthService>().currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("You must log in first!")));
+      return;
+    }
 
+    final userId = currentUser.uid;
+    final aiService = context.read<AIService>();
+    final firebaseService = context.read<FirebaseService>();
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (routeContext) => ChangeNotifierProvider(
+          create: (_) => AddVocabViewModel(
+            aiService: aiService,
+            firebaseService: firebaseService,
+            userId: userId,
+          ),
+          child: AddVocabScreen(
+            onClose: () => Navigator.pop(routeContext),
+          ),
+        ),
+      ),
+    ).then((_) {
+      viewModel.loadWords();
+    });
+  }
+
+  // --- Widget Card & Helpers ---
   Widget _buildWordCard(VocabWord word, BuildContext context) {
+    final displayWord = word.word.isNotEmpty 
+        ? '${word.word[0].toUpperCase()}${word.word.substring(1)}' 
+        : word.word;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
@@ -214,11 +313,7 @@ class VocabTopicScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          )
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))
         ],
       ),
       child: Column(
@@ -234,19 +329,14 @@ class VocabTopicScreen extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          word.word,
-                          style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                          displayWord,
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
                         ),
                         const SizedBox(width: 8),
                         InkWell(
                           onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('🔊 TTS feature coming soon!'),
-                                duration: Duration(seconds: 1),
-                              ),
-                            );
+                             // TTS logic placeholder
+                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('🔊 Coming soon!')));
                           },
                           borderRadius: BorderRadius.circular(20),
                           child: const Padding(
@@ -259,11 +349,7 @@ class VocabTopicScreen extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       word.phonetics,
-                      style: TextStyle(
-                        fontFamily: 'Arial',
-                        color: Colors.grey.shade500,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(fontFamily: 'Arial', color: Colors.grey.shade500, fontSize: 14),
                     ),
                   ],
                 ),
@@ -281,9 +367,7 @@ class VocabTopicScreen extends StatelessWidget {
                     icon: Icons.delete_outline,
                     color: const Color(0xFFEF4444),
                     bgColor: const Color(0xFFFEE2E2),
-                    onTap: () {
-                      _showDeleteDialog(context, word);
-                    },
+                    onTap: () => _showDeleteDialog(context, word),
                   ),
                 ],
               )
@@ -300,10 +384,8 @@ class VocabTopicScreen extends StatelessWidget {
                 _buildTag(word.topic, const Color(0xFF0B5394).withOpacity(0.1), const Color(0xFF0B5394)),
               
               _buildTag(word.kind, _getBgColorByType(word.kind), _getTextColorByType(word.kind)),
-              
               _buildTag(word.cefrLevel, _getBgColorByCefr(word.cefrLevel), _getTextColorByCefr(word.cefrLevel)),
               
-              // AI Context Tag
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
@@ -316,14 +398,7 @@ class VocabTopicScreen extends StatelessWidget {
                   children: [
                     Icon(Icons.auto_awesome, size: 14, color: Color(0xFFD97706)),
                     SizedBox(width: 4),
-                    Text(
-                      "AI Context",
-                      style: TextStyle(
-                        color: Color(0xFFB45309),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500
-                      ),
-                    ),
+                    Text("AI Context", style: TextStyle(color: Color(0xFFB45309), fontSize: 12, fontWeight: FontWeight.w500)),
                   ],
                 ),
               ),
@@ -341,24 +416,11 @@ class VocabTopicScreen extends StatelessWidget {
         title: const Text('Delete Word?'),
         content: Text('Are you sure you want to delete "${word.word}"?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () async {
-              final success = await viewModel.deleteWord(word.id);
-              if (context.mounted) {
-                Navigator.pop(context);
-                if (!success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('❌ Xóa thất bại'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
+              await viewModel.deleteWord(word.id);
+              if (context.mounted) Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Delete'),
@@ -368,12 +430,7 @@ class VocabTopicScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButton({
-    required IconData icon,
-    required Color color,
-    required Color bgColor,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildActionButton({required IconData icon, required Color color, required Color bgColor, required VoidCallback onTap}) {
     return Material(
       color: bgColor,
       borderRadius: BorderRadius.circular(10),
@@ -381,9 +438,7 @@ class VocabTopicScreen extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(10),
         child: Container(
-          width: 36,
-          height: 36,
-          alignment: Alignment.center,
+          width: 36, height: 36, alignment: Alignment.center,
           child: Icon(icon, size: 18, color: color),
         ),
       ),
@@ -397,11 +452,7 @@ class VocabTopicScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: bgColor.withOpacity(0.1) == bgColor
-              ? textColor.withOpacity(0.2)
-              : Colors.transparent
-        ),
+        border: Border.all(color: bgColor.withOpacity(0.1) == bgColor ? textColor.withOpacity(0.2) : Colors.transparent),
       ),
       child: Text(
         text.isNotEmpty ? text[0].toUpperCase() + text.substring(1) : "",
@@ -409,8 +460,6 @@ class VocabTopicScreen extends StatelessWidget {
       ),
     );
   }
-
-  // --- Helper Functions for Colors ---
 
   Color _getBgColorByType(String type) {
     switch (type.toLowerCase()) {
