@@ -160,6 +160,7 @@ class _VocabScreenState extends State<VocabScreen> {
                       create: (_) => AddVocabViewModel(
                         aiService: aiService,
                         firebaseService: firebaseService,
+                        vocabViewModel: context.read<VocabViewModel>(),
                         userId: userId,
                       ),
                       child: AddVocabScreen(
