@@ -139,6 +139,7 @@ class GrammarViewModel extends ChangeNotifier {
       );
 
       await _firebaseService.saveGrammarResult(userId, _result!);
+      await _firebaseService.markUserActiveToday(userId); 
       notifyListeners();
     }
   }
@@ -153,6 +154,7 @@ class GrammarViewModel extends ChangeNotifier {
       );
 
       await _firebaseService.saveGrammarResult(userId, _result!);
+      await _firebaseService.markUserActiveToday(userId);
       notifyListeners();
     }
   }
@@ -160,6 +162,7 @@ class GrammarViewModel extends ChangeNotifier {
   Future<void> saveGrammarResultToFirebase() async {
     if (_result != null) {
       await _firebaseService.saveGrammarResult(userId, _result!);
+      await _firebaseService.markUserActiveToday(userId);
     }
   }
 }

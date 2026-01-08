@@ -73,7 +73,7 @@ IMPORTANT: The "meaning" field MUST be in Vietnamese.
   "phonetics": "/IPA transcription/",
   "meaning": "Dịch nghĩa tiếng Việt ngắn gọn, súc tích",
   "kind": "Part of speech (noun/verb/adj...)",
-  "cefrLevel": "CEFR Level (A1-C2)",
+  "cefrLevel": "CEFR Level (A1-C2), chỉ rõ level của từ",
   "topic": "Relevant topic",
   "example": "A simple example sentence using the word"
 }

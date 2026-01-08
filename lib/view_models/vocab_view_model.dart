@@ -121,6 +121,7 @@ class VocabViewModel extends ChangeNotifier {
         userId: userId,
         vocab: newWord.toFirestore(),
       );
+      await _firebaseService.markUserActiveToday(userId);
       _allWords.insert(0, newWord);
     } catch (e) {
       _errorMessage = "Lỗi AI: $e";

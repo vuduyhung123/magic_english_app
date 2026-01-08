@@ -68,6 +68,7 @@ class AddVocabViewModel extends ChangeNotifier {
         userId: userId,
         vocab: vocab.toFirestore(),
       );
+      await _firebaseService.markUserActiveToday(userId);
       return true;
     } catch (e) {
       _error = 'Lưu từ vựng thất bại: $e';

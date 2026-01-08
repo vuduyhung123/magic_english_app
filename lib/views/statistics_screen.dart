@@ -654,7 +654,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                             child: Stack(
                                               children: [
                                                 Positioned(
-                                                  left: 73.62,
+                                                  left: 70,
                                                   top: 218.80,
                                                   child: Text(
                                                     'A1',
@@ -668,7 +668,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                   ),
                                                 ),
                                                 Positioned(
-                                                  left: 105.93,
+                                                  left: 106,
                                                   top: 218.80,
                                                   child: Text(
                                                     'A2',
@@ -682,7 +682,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                   ),
                                                 ),
                                                 Positioned(
-                                                  left: 140.25,
+                                                  left: 142,
                                                   top: 218.80,
                                                   child: Text(
                                                     'B1',
@@ -696,7 +696,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                   ),
                                                 ),
                                                 Positioned(
-                                                  left: 172.56,
+                                                  left: 178,
                                                   top: 218.80,
                                                   child: Text(
                                                     'B2',
@@ -710,7 +710,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                   ),
                                                 ),
                                                 Positioned(
-                                                  left: 206.37,
+                                                  left: 214,
                                                   top: 218.80,
                                                   child: Text(
                                                     'C1',
@@ -724,7 +724,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                   ),
                                                 ),
                                                 Positioned(
-                                                  left: 238.68,
+                                                  left: 250,
                                                   top: 218.80,
                                                   child: Text(
                                                     'C2',
@@ -746,7 +746,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                     child: Stack(
                                                       children: [
                                                         Positioned(
-                                                          left: 48,
+                                                          left: 32,
                                                           top: 48,
                                                           child: Container(
                                                             width: 269.83,
