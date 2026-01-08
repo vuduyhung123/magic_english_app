@@ -33,15 +33,17 @@ class VocabWord {
   }
 
   factory VocabWord.fromFirestore(Map<String, dynamic> json) {
+    // SỬA: Dùng toán tử ?? để gán giá trị mặc định nếu dữ liệu cũ bị thiếu
+    // Tránh lỗi "type 'Null' is not a subtype of type 'String'"
     return VocabWord(
-      id: json['id'] as int,
-      word: json['word'] as String,
-      phonetics: json['phonetics'] as String,
-      meaning: json['meaning'] as String,
-      kind: json['kind'] as String,
-      cefrLevel: json['cefrLevel'] as String,
-      topic: json['topic'] as String,
-      isFavorite: json['isFavorite'] as bool,
+      id: json['id'] is int ? json['id'] : DateTime.now().millisecondsSinceEpoch, // Phòng hờ id lỗi
+      word: json['word'] ?? 'Unknown Word',
+      phonetics: json['phonetics'] ?? '',
+      meaning: json['meaning'] ?? 'Chưa có nghĩa',
+      kind: json['kind'] ?? 'Other',         // Nếu thiếu loại từ, gán là Other
+      cefrLevel: json['cefrLevel'] ?? 'N/A', // Nếu thiếu cấp độ, gán N/A
+      topic: json['topic'] ?? 'General',     // Nếu thiếu chủ đề, gán General
+      isFavorite: json['isFavorite'] ?? false,
     );
   }
 }
