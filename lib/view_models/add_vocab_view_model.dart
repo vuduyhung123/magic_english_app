@@ -2,22 +2,40 @@ import 'package:flutter/material.dart';
 import '../models/vocab_word.dart';
 import '../services/ai_service.dart';
 import '../services/firebase_service.dart';
+import 'vocab_view_model.dart'; // Bắt buộc import
 
 class AddVocabViewModel extends ChangeNotifier {
   final AIService _aiService;
   final FirebaseService _firebaseService;
-  final String userId;
+
+  // SỬA ĐỔI 1: Thêm biến giữ tham chiếu đến VocabViewModel
+  final VocabViewModel _vocabViewModel;
+
+  String _userId;
 
   bool _isLookingUp = false;
   bool _showSuccess = false;
   String _error = '';
 
+  // SỬA ĐỔI 2: Cập nhật Constructor
   AddVocabViewModel({
     required AIService aiService,
     required FirebaseService firebaseService,
-    required this.userId,
+    required VocabViewModel vocabViewModel, // Nhận vào
+    required String userId,
   })  : _aiService = aiService,
-        _firebaseService = firebaseService;
+        _firebaseService = firebaseService,
+        _vocabViewModel = vocabViewModel, // Gán vào
+        _userId = userId;
+
+  String get userId => _userId;
+
+  set userId(String newId) {
+    if (_userId != newId) {
+      _userId = newId;
+      notifyListeners();
+    }
+  }
 
   bool get isLookingUp => _isLookingUp;
   bool get showSuccess => _showSuccess;
@@ -37,7 +55,6 @@ class AddVocabViewModel extends ChangeNotifier {
 
     try {
       final json = await _aiService.enrichVocabulary(text);
-
       final vocab = VocabWord(
         id: DateTime.now().millisecondsSinceEpoch,
         word: json['word'] ?? text,
@@ -61,13 +78,23 @@ class AddVocabViewModel extends ChangeNotifier {
     }
   }
 
-
   Future<bool> saveVocab(VocabWord vocab) async {
+    if (_userId == 'guest' || _userId.isEmpty) {
+      _error = 'Vui lòng đăng nhập để lưu từ vựng.';
+      notifyListeners();
+      return false;
+    }
+
     try {
+      // 1. Lưu vào Firebase
       await _firebaseService.addVocab(
-        userId: userId,
+        userId: _userId,
         vocab: vocab.toFirestore(),
       );
+
+      // 2. MẤU CHỐT: Gọi VocabViewModel để cập nhật danh sách hiển thị NGAY LẬP TỨC
+      _vocabViewModel.insertLocalWord(vocab);
+
       return true;
     } catch (e) {
       _error = 'Lưu từ vựng thất bại: $e';

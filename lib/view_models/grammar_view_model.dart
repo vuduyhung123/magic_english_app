@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../services/ai_service.dart';
 import '../services/firebase_service.dart';
 
+// --- MODELS (Giữ nguyên hoặc tách ra file riêng nếu muốn) ---
+
 class GrammarError {
   final String type;
   final String message;
@@ -25,11 +27,11 @@ class GrammarError {
   }
 
   Map<String, dynamic> toJson() => {
-        'type': type,
-        'message': message,
-        'original': original,
-        'suggestion': suggestion,
-      };
+    'type': type,
+    'message': message,
+    'original': original,
+    'suggestion': suggestion,
+  };
 }
 
 class GrammarResult {
@@ -48,30 +50,47 @@ class GrammarResult {
       score: (json['score'] ?? 0).toDouble(),
       betterVersion: json['betterVersion'] ?? '',
       errors: (json['errors'] as List?)
-              ?.map((e) => GrammarError.fromJson(e))
-              .toList() ??
+          ?.map((e) => GrammarError.fromJson(e))
+          .toList() ??
           [],
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'score': score,
-        'betterVersion': betterVersion,
-        'errors': errors.map((e) => e.toJson()).toList(),
-      };
+    'score': score,
+    'betterVersion': betterVersion,
+    'errors': errors.map((e) => e.toJson()).toList(),
+  };
 }
+
+// --- VIEW MODEL ---
 
 class GrammarViewModel extends ChangeNotifier {
   final AIService _aiService;
   final FirebaseService _firebaseService;
-  final String userId;
+
+  // SỬA ĐỔI 1: Không để final, chuyển thành private
+  String _userId;
 
   GrammarViewModel({
     required AIService aiService,
     required FirebaseService firebaseService,
-    required this.userId,
+    required String userId,
   })  : _aiService = aiService,
-        _firebaseService = firebaseService;
+        _firebaseService = firebaseService,
+        _userId = userId;
+
+  // SỬA ĐỔI 2: Getter để lấy userId
+  String get userId => _userId;
+
+  // SỬA ĐỔI 3: Setter để main.dart có thể cập nhật (FIX LỖI SETTER)
+  set userId(String newId) {
+    if (_userId != newId) {
+      _userId = newId;
+      // Khi đổi người dùng (login/logout), nên reset lại kết quả cũ
+      reset();
+    }
+  }
 
   bool _isAnalyzing = false;
   GrammarResult? _result;
@@ -107,11 +126,13 @@ class GrammarViewModel extends ChangeNotifier {
       final jsonResponse = await _aiService.checkGrammar(trimmed);
       _result = GrammarResult.fromJson(jsonResponse);
 
-      _isAnalyzing = false;
-      notifyListeners();
+      // Tự động lưu kết quả nếu không phải là guest
+      // saveGrammarResultToFirebase();
+
     } catch (e) {
-      _isAnalyzing = false;
       _error = e.toString().replaceAll('Exception: ', '');
+    } finally {
+      _isAnalyzing = false;
       notifyListeners();
     }
   }
@@ -130,7 +151,9 @@ class GrammarViewModel extends ChangeNotifier {
 
   Future<void> applySuggestion(GrammarError error) async {
     if (_currentText.contains(error.original) && _result != null) {
-      _currentText = _currentText.replaceAll(error.original, error.suggestion);
+      // Lưu ý: replaceAll sẽ thay thế tất cả các từ giống nhau.
+      // Để chính xác hơn cần AI trả về index, nhưng hiện tại dùng tạm replaceFirst.
+      _currentText = _currentText.replaceFirst(error.original, error.suggestion);
 
       _result = GrammarResult(
         score: _result!.score,
@@ -138,28 +161,35 @@ class GrammarViewModel extends ChangeNotifier {
         betterVersion: _result!.betterVersion,
       );
 
-      await _firebaseService.saveGrammarResult(userId, _result!);
       notifyListeners();
+      await saveGrammarResultToFirebase();
     }
   }
 
   Future<void> applyAllSuggestions() async {
     if (_result != null) {
       _currentText = _result!.betterVersion;
+      // Xóa hết lỗi vì đã apply bản tốt nhất
       _result = GrammarResult(
         score: _result!.score,
         errors: [],
         betterVersion: _result!.betterVersion,
       );
 
-      await _firebaseService.saveGrammarResult(userId, _result!);
       notifyListeners();
+      await saveGrammarResultToFirebase();
     }
   }
 
   Future<void> saveGrammarResultToFirebase() async {
-    if (_result != null) {
-      await _firebaseService.saveGrammarResult(userId, _result!);
+    // SỬA ĐỔI 4: Chỉ lưu nếu có kết quả và User không phải là Guest
+    if (_result != null && _userId != 'guest' && _userId.isNotEmpty) {
+      try {
+        await _firebaseService.saveGrammarResult(_userId, _result!);
+      } catch (e) {
+        print("Lỗi lưu grammar: $e");
+        // Không gán vào _error để tránh làm phiền trải nghiệm người dùng
+      }
     }
   }
 }
