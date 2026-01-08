@@ -15,6 +15,10 @@ class StatisticsViewModel extends ChangeNotifier {
     required this.userId,
   });
   
+  Future<void> refresh() async {
+    await loadStats();
+  }
+  
   Future<void> loadStats() async {
     final vocabs = await firebaseService.getVocabWords(userId);
     final streak = await firebaseService.getCurrentStreak(userId);

@@ -399,7 +399,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                                                 child: SizedBox(
                                                                   width: 73,
                                                                   child: Text(
-                                                                    'Verbs: ${widget.viewModel.stats?.posCounts['Verb'] ?? 0}',
+                                                                    'Verbs: ${widget.viewModel.stats?.posCounts['Verb'] ?? ['verb']}',
                                                                     style: TextStyle(
                                                                       color: const Color(0xFF354152),
                                                                       fontSize: 16,
@@ -654,103 +654,18 @@ class _StatisticScreenState extends State<StatisticScreen> {
                                             child: Stack(
                                               children: [
                                                 Positioned(
-                                                  left: 70,
-                                                  top: 218.80,
-                                                  child: Text(
-                                                    'A1',
-                                                    textAlign: TextAlign.center,
-                                                    style: TextStyle(
-                                                      color: const Color(0xFF6B7280),
-                                                      fontSize: 13.99,
-                                                      fontFamily: 'Inter',
-                                                      fontWeight: FontWeight.w400,
-                                                    ),
-                                                  ),
-                                                ),
-                                                Positioned(
-                                                  left: 106,
-                                                  top: 218.80,
-                                                  child: Text(
-                                                    'A2',
-                                                    textAlign: TextAlign.center,
-                                                    style: TextStyle(
-                                                      color: const Color(0xFF6B7280),
-                                                      fontSize: 13.99,
-                                                      fontFamily: 'Inter',
-                                                      fontWeight: FontWeight.w400,
-                                                    ),
-                                                  ),
-                                                ),
-                                                Positioned(
-                                                  left: 142,
-                                                  top: 218.80,
-                                                  child: Text(
-                                                    'B1',
-                                                    textAlign: TextAlign.center,
-                                                    style: TextStyle(
-                                                      color: const Color(0xFF6B7280),
-                                                      fontSize: 13.99,
-                                                      fontFamily: 'Inter',
-                                                      fontWeight: FontWeight.w400,
-                                                    ),
-                                                  ),
-                                                ),
-                                                Positioned(
-                                                  left: 178,
-                                                  top: 218.80,
-                                                  child: Text(
-                                                    'B2',
-                                                    textAlign: TextAlign.center,
-                                                    style: TextStyle(
-                                                      color: const Color(0xFF6B7280),
-                                                      fontSize: 13.99,
-                                                      fontFamily: 'Inter',
-                                                      fontWeight: FontWeight.w400,
-                                                    ),
-                                                  ),
-                                                ),
-                                                Positioned(
-                                                  left: 214,
-                                                  top: 218.80,
-                                                  child: Text(
-                                                    'C1',
-                                                    textAlign: TextAlign.center,
-                                                    style: TextStyle(
-                                                      color: const Color(0xFF6B7280),
-                                                      fontSize: 13.99,
-                                                      fontFamily: 'Inter',
-                                                      fontWeight: FontWeight.w400,
-                                                    ),
-                                                  ),
-                                                ),
-                                                Positioned(
-                                                  left: 250,
-                                                  top: 218.80,
-                                                  child: Text(
-                                                    'C2',
-                                                    textAlign: TextAlign.center,
-                                                    style: TextStyle(
-                                                      color: const Color(0xFF6B7280),
-                                                      fontSize: 13.99,
-                                                      fontFamily: 'Inter',
-                                                      fontWeight: FontWeight.w400,
-                                                    ),
-                                                  ),
-                                                ),
-                                                Positioned(
                                                   left: 0,
                                                   top: 0,
                                                   child: Container(
                                                     width: 269.83,
-                                                    height: 199.98,
+                                                    height: 240,
                                                     child: Stack(
                                                       children: [
                                                         Positioned(
-                                                          left: 32,
-                                                          top: 48,
+                                                          left: 12,
                                                           child: Container(
                                                             width: 269.83,
-                                                            height: 199.87,
+                                                            height: 240,
                                                             clipBehavior: Clip.antiAlias,
                                                             decoration: BoxDecoration(),
                                                             child: CefrBarChart(viewModel: widget.viewModel)
@@ -2212,33 +2127,40 @@ class CefrBarChart extends StatelessWidget {
     }
 
     final maxValue = data.values.reduce((a, b) => a > b ? a : b).toDouble();
-    
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
-      children: data.entries.map((e) {
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: data.entries.expand((e) {
         final double height = maxValue == 0 ? 0 : (e.value / maxValue) * 160;
-        return Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                width: 24,
-                height: height,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0B5394),
-                  borderRadius: BorderRadius.circular(6),
+
+        return [
+          SizedBox(
+            width: 28,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: 24,
+                  height: height,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0B5394),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(e.key, style: const TextStyle(fontSize: 10)),
-            ],
+                const SizedBox(height: 6),
+                Text(e.key, style: const TextStyle(fontSize: 10)),
+              ],
+            ),
           ),
-        );
+          const SizedBox(width: 6),
+        ];
       }).toList(),
     );
   }
 }
+
 
 class KindPieChart extends StatelessWidget {
   final Map<String, int> data;
