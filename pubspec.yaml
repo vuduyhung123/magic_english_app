@@ -1,62 +1,50 @@
 name: magic_english_app
 description: "AI-powered English learning app"
 publish_to: 'none'
-
 version: 1.0.0+1
 
 environment:
   sdk: ^3.9.2
 
 dependencies:
-  shared_preferences: ^2.2.2
   flutter:
     sdk: flutter
-  
-  # UI
+
+  # --- CÁC THƯ VIỆN CŨ ---
+  shared_preferences: ^2.2.2
   cupertino_icons: ^1.0.8
   flutter_svg: ^2.2.3
-  
-  # State Management
   provider: ^6.1.1
-  
-  # Networking
   dio: ^5.4.0
-  
-  # Environment Variables
   flutter_dotenv: ^5.1.0
-  
-  # Utils
   url_launcher: ^6.2.4
   intl: ^0.19.0
-
-  # Firebase & Auth
   firebase_core: ^3.1.1
   firebase_auth: ^5.1.1
   google_sign_in: ^6.2.1
   cloud_firestore: ^5.1.0
 
+  # --- THÊM 2 DÒNG NÀY ĐỂ SỬA LỖI ---
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
-  # Thư viện tạo icon (Mới thêm)
   flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
-
   assets:
     - assets/icons/
     - assets/images/
     - .env
 
-# Cấu hình tạo Icon App (Mới thêm)
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  # Đường dẫn đến file ảnh trong thư mục của bạn
   image_path: "assets/images/LogoMagic.png"
   min_sdk_android: 21
-  # Màu nền xanh (trùng màu app của bạn) cho các máy Android đời mới
   adaptive_icon_background: "#0B5394"
   adaptive_icon_foreground: "assets/images/LogoMagic.png"
