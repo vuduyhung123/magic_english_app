@@ -12,6 +12,7 @@ import 'models/app_user.dart';
 import 'services/ai_service.dart';
 import 'services/auth_service.dart';
 import 'services/firebase_service.dart';
+import 'services/notification_service.dart'; // BỔ SUNG IMPORT
 
 // ViewModels
 import 'view_models/statistic_view_model.dart';
@@ -31,13 +32,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  // BỔ SUNG: KHỞI TẠO NOTIFICATION SERVICE
+  await NotificationService().init();
+
   try {
     await dotenv.load(fileName: ".env");
   } catch (e) {
     debugPrint("Warning: .env file not found or empty: $e");
   }
 
-  // Đọc ID từ ổ cứng trước khi chạy App để fix lỗi Cold Start
   final prefs = await SharedPreferences.getInstance();
   final String savedUserId = prefs.getString('confirmed_user_id') ?? 'guest';
   debugPrint("MAIN: Khởi động với ID từ Cache: $savedUserId");
@@ -45,18 +48,14 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        // 1. Service cơ bản
         Provider<AuthService>(create: (_) => AuthService(), lazy: false),
         Provider<FirebaseService>(create: (_) => FirebaseService()),
 
-        // 2. QUAN TRỌNG: Lắng nghe luồng sự kiện Đăng nhập/Đăng xuất từ Firebase
-        // Cái này giúp App biết ngay lập tức khi bạn đổi tài khoản
         StreamProvider<User?>(
           create: (context) => context.read<AuthService>().authStateChanges,
           initialData: null,
         ),
 
-        // 3. AI Service
         Provider<AIService>(create: (_) {
           final useOllama = dotenv.env['USE_OLLAMA']?.toLowerCase() == 'true';
           final apiKey = useOllama
@@ -70,7 +69,6 @@ void main() async {
           );
         }),
 
-        // --- VOCAB (Sửa: Nghe User? thay vì AuthService) ---
         ChangeNotifierProxyProvider3<AIService, FirebaseService, User?, VocabViewModel>(
           create: (context) => VocabViewModel(
             aiService: context.read<AIService>(),
@@ -78,16 +76,13 @@ void main() async {
             userId: savedUserId,
           ),
           update: (context, ai, firebase, user, previous) {
-            // Logic: Nếu user null (logout) -> 'guest'. Nếu có user -> lấy uid.
             final effectiveId = user?.uid ?? 'guest';
-
             final vm = previous ?? VocabViewModel(aiService: ai, firebaseService: firebase, userId: effectiveId);
-            vm.userId = effectiveId; // Cập nhật ID mới -> VocabViewModel sẽ tự xóa list cũ
+            vm.userId = effectiveId;
             return vm;
           },
         ),
 
-        // --- GRAMMAR (Sửa: Nghe User? thay vì AuthService) ---
         ChangeNotifierProxyProvider3<AIService, FirebaseService, User?, GrammarViewModel>(
             create: (context) => GrammarViewModel(
               aiService: context.read<AIService>(),
@@ -102,7 +97,6 @@ void main() async {
             }
         ),
 
-        // --- ADD VOCAB (Sửa: Nghe User? thay vì AuthService) ---
         ChangeNotifierProxyProvider4<AIService, FirebaseService, User?, VocabViewModel, AddVocabViewModel>(
             create: (context) => AddVocabViewModel(
               aiService: context.read<AIService>(),
@@ -112,7 +106,6 @@ void main() async {
             ),
             update: (context, ai, firebase, user, vocabVM, previous) {
               final effectiveId = user?.uid ?? 'guest';
-
               if (previous != null) {
                 previous.userId = effectiveId;
                 return previous;
@@ -126,7 +119,6 @@ void main() async {
             }
         ),
 
-        // --- STATISTICS (Sửa: Nghe User? thay vì AuthService) ---
         ChangeNotifierProxyProvider2<FirebaseService, User?, StatisticsViewModel>(
             create: (context) => StatisticsViewModel(
               firebaseService: context.read<FirebaseService>(),
@@ -210,8 +202,6 @@ class _AppDispatcherState extends State<AppDispatcher> {
   }
 }
 
-// --- MAIN SCREEN (Đây là khung chứa Menu, không phải Home Screen) ---
-// Giữ nguyên vị trí ở đây như file gốc của bạn.
 class MainScreen extends StatefulWidget {
   final bool isGuest;
   const MainScreen({super.key, this.isGuest = false});
@@ -231,7 +221,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _loadUserData();
     _checkSharedText();
-    // Tự động load dữ liệu khi vào
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!widget.isGuest) _refreshData();
     });
@@ -243,11 +232,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  // --- LOGIC QUAN TRỌNG: Load lại khi App tỉnh dậy (Process Text) ---
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      print("DEBUG: App resumed -> Refresh.");
       _checkSharedText();
       if (!widget.isGuest) _refreshData();
     }
@@ -255,7 +242,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   void _refreshData() {
     context.read<VocabViewModel>().loadWords();
-    // context.read<GrammarViewModel>().loadGrammar();
     context.read<StatisticsViewModel>().loadStats();
   }
 

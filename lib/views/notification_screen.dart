@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart'; // BỔ SUNG IMPORT
 
 class NotificationScreen extends StatefulWidget {
   final AppUser? user;
@@ -84,7 +85,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.purple,
+        backgroundColor: Colors.purple, // GIỮ NGUYÊN MÀU TÍM
         foregroundColor: Colors.white,
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,6 +103,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // --- ALL NOTIFICATIONS (MÀU TÍM) ---
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(color: Colors.purple[50], borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.purple.shade100)),
@@ -131,6 +133,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         if (!val) {
                           _learningReminders = false;
                           _streakAlerts = false;
+                        } else {
+                          // >>> GỌI THÔNG BÁO TEST <<<
+                          NotificationService().showInstantNotification(
+                            id: 0,
+                            title: "Notifications Enabled 🔔",
+                            body: "You will now receive updates from Magic English.",
+                          );
                         }
                       });
                       _onChanged();
@@ -139,32 +148,66 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 ],
               ),
             ),
+
             const SizedBox(height: 24),
             const Text("Learning & Progress", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 16),
+
             Container(
               decoration: BoxDecoration(border: Border.all(color: Colors.grey[200]!), borderRadius: BorderRadius.circular(16)),
               child: Column(
                 children: [
+                  // --- LEARNING REMINDERS ---
                   _buildSwitchItem(
                     icon: Icons.access_time, color: Colors.blue,
                     title: "Learning Reminders", subtitle: "Daily study notifications",
                     value: _learningReminders,
-                    onChanged: _allNoti ? (val) => setState(() { _learningReminders = val; _onChanged(); }) : null,
+                    onChanged: _allNoti ? (val) {
+                      setState(() {
+                        _learningReminders = val;
+                        _onChanged();
+                      });
+                      if (val) {
+                        // >>> GỌI THÔNG BÁO TEST <<<
+                        NotificationService().showInstantNotification(
+                          id: 1,
+                          title: "Time to learn! 📚",
+                          body: "Don't forget your daily English lesson. Just 5 minutes!",
+                        );
+                      }
+                    } : null,
                   ),
                   const Divider(height: 1),
+
+                  // --- STREAK ALERTS ---
                   _buildSwitchItem(
                     icon: Icons.local_fire_department, color: Colors.orange,
                     title: "Streak Alerts", subtitle: "Don't lose your streak!",
                     value: _streakAlerts,
-                    onChanged: _allNoti ? (val) => setState(() { _streakAlerts = val; _onChanged(); }) : null,
+                    onChanged: _allNoti ? (val) {
+                      setState(() {
+                        _streakAlerts = val;
+                        _onChanged();
+                      });
+                      if (val) {
+                        // >>> GỌI THÔNG BÁO TEST <<<
+                        NotificationService().showInstantNotification(
+                          id: 2,
+                          title: "Streak Warning! 🔥",
+                          body: "You're about to lose your 7-day streak. Practice now!",
+                        );
+                      }
+                    } : null,
                   ),
                 ],
               ),
             ),
+
             const SizedBox(height: 24),
             const Text("Quiet Hours", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 16),
+
+            // --- QUIET HOURS ---
             Container(
               padding: const EdgeInsets.symmetric(vertical: 8),
               decoration: BoxDecoration(border: Border.all(color: Colors.grey[200]!), borderRadius: BorderRadius.circular(16)),
@@ -175,7 +218,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 onChanged: (val) => setState(() { _quietHours = val; _onChanged(); }),
               ),
             ),
+
             const SizedBox(height: 24),
+
+            // --- INFO CARD (MÀU CAM) ---
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(color: Colors.orange[50], borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.orange.shade100)),
@@ -199,7 +245,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 ],
               ),
             ),
+
             const SizedBox(height: 40),
+
+            // --- BUTTONS (SAVE / CANCEL) ---
             Row(
               children: [
                 Expanded(
