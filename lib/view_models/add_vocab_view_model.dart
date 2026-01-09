@@ -91,6 +91,7 @@ class AddVocabViewModel extends ChangeNotifier {
         userId: _userId,
         vocab: vocab.toFirestore(),
       );
+      await _firebaseService.markUserActiveToday(userId);
 
       // 2. MẤU CHỐT: Gọi VocabViewModel để cập nhật danh sách hiển thị NGAY LẬP TỨC
       _vocabViewModel.insertLocalWord(vocab);

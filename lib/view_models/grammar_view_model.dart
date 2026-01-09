@@ -151,8 +151,6 @@ class GrammarViewModel extends ChangeNotifier {
 
   Future<void> applySuggestion(GrammarError error) async {
     if (_currentText.contains(error.original) && _result != null) {
-      // Lưu ý: replaceAll sẽ thay thế tất cả các từ giống nhau.
-      // Để chính xác hơn cần AI trả về index, nhưng hiện tại dùng tạm replaceFirst.
       _currentText = _currentText.replaceFirst(error.original, error.suggestion);
 
       _result = GrammarResult(
@@ -161,6 +159,8 @@ class GrammarViewModel extends ChangeNotifier {
         betterVersion: _result!.betterVersion,
       );
 
+      await _firebaseService.saveGrammarResult(userId, _result!);
+      await _firebaseService.markUserActiveToday(userId); 
       notifyListeners();
       await saveGrammarResultToFirebase();
     }
@@ -169,13 +169,14 @@ class GrammarViewModel extends ChangeNotifier {
   Future<void> applyAllSuggestions() async {
     if (_result != null) {
       _currentText = _result!.betterVersion;
-      // Xóa hết lỗi vì đã apply bản tốt nhất
       _result = GrammarResult(
         score: _result!.score,
         errors: [],
         betterVersion: _result!.betterVersion,
       );
 
+      await _firebaseService.saveGrammarResult(userId, _result!);
+      await _firebaseService.markUserActiveToday(userId);
       notifyListeners();
       await saveGrammarResultToFirebase();
     }
@@ -186,9 +187,9 @@ class GrammarViewModel extends ChangeNotifier {
     if (_result != null && _userId != 'guest' && _userId.isNotEmpty) {
       try {
         await _firebaseService.saveGrammarResult(_userId, _result!);
+        await _firebaseService.markUserActiveToday(userId);
       } catch (e) {
         print("Lỗi lưu grammar: $e");
-        // Không gán vào _error để tránh làm phiền trải nghiệm người dùng
       }
     }
   }

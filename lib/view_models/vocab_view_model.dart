@@ -32,31 +32,21 @@ class VocabViewModel extends ChangeNotifier {
     }
   }
 
-  // --- QUẢN LÝ USER ID (CHỖ SỬA QUAN TRỌNG NHẤT) ---
   String get userId => _userId;
 
   set userId(String newId) {
-    // Chỉ xử lý khi ID thực sự thay đổi
     if (_userId != newId) {
       print("DEBUG: Đổi User từ $_userId sang $newId");
 
-      // 1. Cập nhật ID mới
       _userId = newId;
-
-      // 2. XOÁ SẠCH DANH SÁCH CŨ NGAY LẬP TỨC
-      // Đây là dòng code fix lỗi "hiện danh sách người cũ"
       _allWords.clear();
       _errorMessage = null;
       notifyListeners();
 
-      // 3. Xử lý tiếp theo
       if (_userId != 'guest' && _userId.isNotEmpty) {
-        // Nếu là user mới -> Lưu cache và tải dữ liệu mới
         _saveUserToDisk(_userId);
         loadWords();
       } else {
-        // Nếu chuyển về guest -> Thử check ổ cứng lần nữa
-        // (Để phân biệt giữa Logout thật và Process Text)
         _tryLoadUserFromDisk();
       }
     }
@@ -115,7 +105,6 @@ class VocabViewModel extends ChangeNotifier {
           loadWords();
         }
       } else {
-        // Nếu ổ cứng rỗng -> Đây là Logout thật -> Xóa sạch list
         if (_userId == 'guest') {
           _allWords.clear();
           notifyListeners();
@@ -124,14 +113,13 @@ class VocabViewModel extends ChangeNotifier {
     } catch (_) {}
   }
 
-  // --- HÀM XỬ LÝ AI (GIỮ NGUYÊN) ---
   Future<void> addNewWordFromAI(String inputWord) async {
     if (inputWord.trim().isEmpty) return;
     _isLoading = true;
     notifyListeners();
 
     try {
-      await Future.delayed(const Duration(seconds: 1)); // Chờ 1s cho chắc
+      await Future.delayed(const Duration(seconds: 1));
 
       String finalUserId = 'guest';
       final prefs = await SharedPreferences.getInstance();
@@ -167,11 +155,11 @@ class VocabViewModel extends ChangeNotifier {
       );
 
       await _firebaseService.addVocab(userId: finalUserId, vocab: newWord.toFirestore());
+      await _firebaseService.markUserActiveToday(userId);
 
       if (finalUserId == _userId) {
         insertLocalWord(newWord);
       } else {
-        // Nếu ID khác nhau (hiếm gặp), cập nhật lại
         _userId = finalUserId;
         loadWords();
       }

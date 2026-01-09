@@ -272,7 +272,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
   }
 
-  void _onTabTapped(int index) => setState(() => _currentIndex = index);
+  void _onTabTapped(int index) => setState(() {
+    _currentIndex = index;
+    context.read<StatisticsViewModel>().refresh();
+  });
 
   @override
   Widget build(BuildContext context) {

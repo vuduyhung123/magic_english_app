@@ -14,9 +14,14 @@ class StatisticsViewModel extends ChangeNotifier {
     required this.firebaseService,
     required this.userId,
   });
-
+  
+  Future<void> refresh() async {
+    await loadStats();
+  }
+  
   Future<void> loadStats() async {
     final vocabs = await firebaseService.getVocabWords(userId);
+    final streak = await firebaseService.getCurrentStreak(userId);
 
     final Map<String, int> pos = {};
     for (final v in vocabs) {
@@ -50,7 +55,7 @@ class StatisticsViewModel extends ChangeNotifier {
       cefrCounts: cefr,
       posCounts: pos,
       totalWords: vocabs.length,
-      streak: 0,
+      streak: streak,
       accuracy: accuracy,
     );
 
